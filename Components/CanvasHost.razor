@@ -1,0 +1,44 @@
+@using AiDesigner.Services
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+@inject PhotoSessionService Session
+@inject IJSRuntime JS
+
+@* Мінімальний хост для перевірки. Повноцінний CanvasEditor — окремий крок. *@
+<div @ref="_container" class="canvas-host"></div>
+
+@code {
+    private ElementReference _container;
+
+    // OnAfterRenderAsync не викликається під час prerender, тому цей прапорець
+    // гарантує, що JS у DisposeAsync викликаємо лише в інтерактивному режимі.
+    private bool _canvasInitialized;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        await JS.InvokeVoidAsync("canvasEditor.init", _container);
+        _canvasInitialized = true;
+
+        // Якщо компонент створено повторно (навігація), а фото вже є в сесії — відновлюємо фон.
+        if (Session.Current is { } photo)
+        {
+            await JS.InvokeVoidAsync("canvasEditor.setBackground", photo.ToDataUrl());
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (!_canvasInitialized) return;
+
+        try
+        {
+            await JS.InvokeVoidAsync("canvasEditor.dispose");
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit уже закрито — нічого звільняти.
+        }
+    }
+}
