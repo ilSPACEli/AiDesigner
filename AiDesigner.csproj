@@ -10,8 +10,4 @@
     <Folder Include="Components\Layout\" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Include="wwwroot\js\canvasEditor.js" />
-  </ItemGroup>
-
 </Project>

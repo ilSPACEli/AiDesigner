@@ -24,7 +24,7 @@
 
 <p><strong>Скрипти:</strong> @_scriptsStatus</p>
 
-<CanvasHost />
+<EditorCanvas />
 
 @code {
     private string _scriptsStatus = "перевірка…";
@@ -35,12 +35,13 @@
     {
         if (!firstRender) return;
 
+        // Діагностика чи завантажилися Fabric.js і editorCanvas.js.
         var fabric = await JS.InvokeAsync<string>("eval", "typeof fabric");
-        var editor = await JS.InvokeAsync<string>("eval", "typeof canvasEditor");
+        var editor = await JS.InvokeAsync<string>("eval", "typeof editorCanvas");
 
         _scriptsStatus = fabric == "object" && editor == "object"
-            ? "Fabric.js і canvasEditor.js завантажені ✔"
-            : $"ПРОБЛЕМА: fabric = {fabric}, canvasEditor = {editor} (очікується object)";
+            ? "Fabric.js і editorCanvas.js завантажені ✔"
+            : $"ПРОБЛЕМА: fabric = {fabric}, editorCanvas = {editor} (очікується object)";
 
         StateHasChanged();
     }

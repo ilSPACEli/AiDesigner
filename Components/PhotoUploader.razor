@@ -1,9 +1,7 @@
 @using AiDesigner.Models
 @using AiDesigner.Services
 @using Microsoft.AspNetCore.Components.Forms
-@using Microsoft.JSInterop
 @inject PhotoSessionService Session
-@inject IJSRuntime JS
 
 <div class="photo-uploader mb-3">
     <label for="photo-input" class="form-label">Завантажте фото кімнати</label>
@@ -55,7 +53,6 @@
 
         try
         {
-
             var bytes = new byte[file.Size];
             await using (var stream = file.OpenReadStream(MaxFileSizeBytes))
             {
@@ -63,17 +60,12 @@
             }
 
             var photo = new UploadedPhoto(file.Name, file.ContentType, bytes);
-            Session.SetPhoto(photo);
 
-            await JS.InvokeVoidAsync("canvasEditor.setBackground", photo.ToDataUrl());
+            Session.SetPhoto(photo);
         }
         catch (IOException)
         {
             _error = "Не вдалося прочитати файл. Спробуйте ще раз.";
-        }
-        catch (JSException)
-        {
-            _error = "Не вдалося показати фото на полотні.";
         }
         finally
         {
