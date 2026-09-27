@@ -1,0 +1,75 @@
+@using AiDesigner.Models
+@using AiDesigner.Services
+@using Microsoft.AspNetCore.Components.Forms
+@inject PhotoSessionService Session
+
+<div class="photo-uploader mb-3">
+    <label for="photo-input" class="form-label">Завантажте фото кімнати</label>
+
+    <InputFile id="photo-input"
+               class="form-control"
+               accept="image/jpeg,image/png,image/webp"
+               disabled="@_isLoading"
+               OnChange="OnFileSelectedAsync" />
+
+    @if (_isLoading)
+    {
+        <div class="form-text">Завантаження…</div>
+    }
+
+    @if (_error is not null)
+    {
+        <div class="text-danger mt-2" role="alert">@_error</div>
+    }
+</div>
+
+@code {
+    private const long MaxFileSizeBytes = 8 * 1024 * 1024; // 8 МБ
+
+    private static readonly HashSet<string> AllowedContentTypes =
+        new(StringComparer.OrdinalIgnoreCase) { "image/jpeg", "image/png", "image/webp" };
+
+    private bool _isLoading;
+    private string? _error;
+
+    private async Task OnFileSelectedAsync(InputFileChangeEventArgs e)
+    {
+        _error = null;
+        var file = e.File;
+
+        if (!AllowedContentTypes.Contains(file.ContentType))
+        {
+            _error = "Підтримуються лише JPEG, PNG та WebP.";
+            return;
+        }
+
+        if (file.Size is 0 or > MaxFileSizeBytes)
+        {
+            _error = $"Розмір файлу має бути від 1 байта до {MaxFileSizeBytes / 1024 / 1024} МБ.";
+            return;
+        }
+
+        _isLoading = true;
+
+        try
+        {
+            var bytes = new byte[file.Size];
+            await using (var stream = file.OpenReadStream(MaxFileSizeBytes))
+            {
+                await stream.ReadExactlyAsync(bytes);
+            }
+
+            var photo = new UploadedPhoto(file.Name, file.ContentType, bytes);
+
+            Session.SetPhoto(photo);
+        }
+        catch (IOException)
+        {
+            _error = "Не вдалося прочитати файл. Спробуйте ще раз.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

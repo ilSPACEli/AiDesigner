@@ -1,0 +1,52 @@
+@page "/test"
+@rendermode InteractiveServer
+@using AiDesigner.Services
+@using Microsoft.JSInterop
+@implements IDisposable
+@inject PhotoSessionService Session
+@inject IJSRuntime JS
+
+<h1>Тест: завантаження фото</h1>
+
+<PhotoUploader />
+
+<p>
+    <strong>Стан сесії:</strong>
+    @if (Session.Current is { } photo)
+    {
+        <span>@photo.FileName, @photo.ContentType, @(photo.Bytes.Length / 1024) КБ</span>
+    }
+    else
+    {
+        <span>фото ще не завантажено</span>
+    }
+</p>
+
+<p><strong>Скрипти:</strong> @_scriptsStatus</p>
+
+<EditorCanvas />
+
+@code {
+    private string _scriptsStatus = "перевірка…";
+
+    protected override void OnInitialized() => Session.Changed += OnSessionChanged;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        // Діагностика чи завантажилися Fabric.js і editorCanvas.js.
+        var fabric = await JS.InvokeAsync<string>("eval", "typeof fabric");
+        var editor = await JS.InvokeAsync<string>("eval", "typeof editorCanvas");
+
+        _scriptsStatus = fabric == "object" && editor == "object"
+            ? "Fabric.js і editorCanvas.js завантажені ✔"
+            : $"ПРОБЛЕМА: fabric = {fabric}, editorCanvas = {editor} (очікується object)";
+
+        StateHasChanged();
+    }
+
+    private void OnSessionChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Session.Changed -= OnSessionChanged;
+}

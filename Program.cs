@@ -1,7 +1,9 @@
 using AiDesigner.Components;
+using AiDesigner.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddScoped<PhotoSessionService>();
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();

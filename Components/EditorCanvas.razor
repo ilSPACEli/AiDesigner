@@ -1,0 +1,57 @@
+﻿@using AiDesigner.Services
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+@inject PhotoSessionService Session
+@inject IJSRuntime JS
+
+<div @ref="_container" class="editor-canvas w-100"></div>
+
+@code {
+    private ElementReference _container;
+
+    private readonly string _editorId = Guid.NewGuid().ToString("N");
+
+    private bool _canvasInitialized;
+
+    protected override void OnInitialized()
+    {
+        Session.Changed += OnSessionChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        await JS.InvokeVoidAsync("editorCanvas.init", _container, _editorId);
+        _canvasInitialized = true;
+
+        if (Session.Current is { } photo)
+        {
+            await JS.InvokeVoidAsync("editorCanvas.setBackground", _editorId, photo.ToDataUrl());
+        }
+    }
+
+    private void OnSessionChanged()
+    {
+        _ = InvokeAsync(async () =>
+        {
+            if (!_canvasInitialized || Session.Current is not { } photo) return;
+            await JS.InvokeVoidAsync("editorCanvas.setBackground", _editorId, photo.ToDataUrl());
+        });
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Session.Changed -= OnSessionChanged;
+
+        if (!_canvasInitialized) return;
+
+        try
+        {
+            await JS.InvokeVoidAsync("editorCanvas.dispose", _editorId);
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+    }
+}
