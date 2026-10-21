@@ -16,84 +16,99 @@
         <div class="message @(_isError ? "error" : "info")">@_message</div>
     }
 
-    @* 1. Фото (UC-01) *@
-    <section class="step">
-        <h2>1. Фото приміщення</h2>
-        <InputFile OnChange="OnPhotoSelectedAsync" accept="image/jpeg,image/png"
-                   disabled="@Session.IsAnalyzing" />
-        @if (_photoDataUrl is not null)
-        {
-            <img class="photo" src="@_photoDataUrl" alt="Фото приміщення" />
-        }
-    </section>
-
-    @* 2. Аналіз (UC-02) *@
-    <section class="step">
-        <h2>2. Аналіз</h2>
-        <button class="btn" @onclick="AnalyzeAsync" disabled="@(!CanAnalyze)">
-            @(Session.IsAnalyzing ? "Аналіз…" : "Аналіз")
-        </button>
-
-        @if (Session.Analysis is { } analysis)
-        {
-            <div class="palette">
-                @foreach (var color in analysis.Colors)
-                {
-                    <div class="swatch">
-                        <span class="chip" style="background:@color.Hex"></span>
-                        <span>@color.Hex</span>
-                        <span class="share">@color.Share.ToString("0.#") %</span>
-                    </div>
-                }
-            </div>
-            <p>Освітленість: <strong>@LightingText(analysis.Lighting)</strong></p>
-        }
-    </section>
-
-    @* 3. Пропозиції (UC-03) *@
-    <section class="step">
-        <h2>3. Пропозиції</h2>
-        <button class="btn" @onclick="Suggest" disabled="@(Session.State != SessionState.ANALYZED)">
-            Підібрати предмети
-        </button>
-
-        <ul class="suggestions">
-            @foreach (var suggestion in Session.Suggestions)
+    <div class="layout">
+        @* 1. Фото й полотно (UC-01, UC-04) *@
+        <section class="step canvas-panel">
+            <h2>1. Фото приміщення</h2>
+            <InputFile OnChange="OnPhotoSelectedAsync" accept="image/jpeg,image/png"
+                       disabled="@(Session.IsAnalyzing || _busy)" />
+            <PhotoCanvas @ref="_canvas" />
+            @if (Session.Photo is null)
             {
-                var item = suggestion.Item;
-                <li class="@(Session.Placement?.Item.Id == item.Id ? "selected" : null)">
-                    <img src="@item.ImageFile" alt="@item.Name" />
-                    <div class="info">
-                        <strong>@item.Name</strong>
-                        <span>@suggestion.Reason</span>
-                    </div>
-                    <button class="btn" @onclick="() => Choose(item)">Обрати</button>
-                </li>
+                <p class="hint">Оберіть фото у форматі JPEG або PNG.</p>
             }
-        </ul>
-    </section>
+            else if (Session.Placement is not null)
+            {
+                <p class="hint">Перетягуйте предмет і змінюйте його розмір за кутові маркери.</p>
+            }
+        </section>
 
-    @* 4. Розміщення й збереження (UC-04) *@
-    <section class="step">
-        <h2>4. Розміщення</h2>
-        @if (Session.Placement is { } placement)
-        {
-            <p>Обрано: <strong>@placement.Item.Name</strong></p>
-        }
-        else
-        {
-            <p class="hint">Оберіть предмет із пропозицій.</p>
-        }
-    </section>
+        <div class="steps">
+            @* 2. Аналіз (UC-02) *@
+            <section class="step">
+                <h2>2. Аналіз</h2>
+                <button class="btn" @onclick="AnalyzeAsync" disabled="@(!CanAnalyze)">
+                    @(Session.IsAnalyzing ? "Аналіз…" : "Аналіз")
+                </button>
+
+                @if (Session.Analysis is { } analysis)
+                {
+                    <div class="palette">
+                        @foreach (var color in analysis.Colors)
+                        {
+                            <div class="swatch">
+                                <span class="chip" style="background:@color.Hex"></span>
+                                <span>@color.Hex</span>
+                                <span class="share">@color.Share.ToString("0.#") %</span>
+                            </div>
+                        }
+                    </div>
+                    <p>Освітленість: <strong>@LightingText(analysis.Lighting)</strong></p>
+                }
+            </section>
+
+            @* 3. Пропозиції (UC-03) *@
+            <section class="step">
+                <h2>3. Пропозиції</h2>
+                <button class="btn" @onclick="Suggest" disabled="@(Session.State != SessionState.ANALYZED)">
+                    Підібрати предмети
+                </button>
+
+                <ul class="suggestions">
+                    @foreach (var suggestion in Session.Suggestions)
+                    {
+                        var item = suggestion.Item;
+                        <li class="@(Session.Placement?.Item.Id == item.Id ? "selected" : null)">
+                            <img src="@item.ImageFile" alt="@item.Name" />
+                            <div class="info">
+                                <strong>@item.Name</strong>
+                                <span>@suggestion.Reason</span>
+                            </div>
+                            <button class="btn" @onclick="() => ChooseAsync(item)" disabled="@_busy">Обрати</button>
+                        </li>
+                    }
+                </ul>
+            </section>
+
+            @* 4. Збереження (UC-04) *@
+            <section class="step">
+                <h2>4. Збереження</h2>
+                <button class="btn" @onclick="SaveAsync"
+                        disabled="@(Session.State != SessionState.ITEM_PLACED || _busy)">
+                    @(_busy ? "Збереження…" : "Зберегти")
+                </button>
+                @if (Session.SavedResults.Count > 0)
+                {
+                    <ul class="saved">
+                        @foreach (var saved in Session.SavedResults)
+                        {
+                            <li>@saved.FileName</li>
+                        }
+                    </ul>
+                }
+            </section>
+        </div>
+    </div>
 </main>
 
 @code {
-    // Максимальний розмір, який сторінка взагалі читає.
+    // Найбільший файл, який сторінка взагалі читає. Точні обмеження NFR-06 перевіряє UC-01.
     private const long MaxFileSize = 10 * 1024 * 1024;
 
-    private string? _photoDataUrl;
+    private PhotoCanvas _canvas = default!;
     private string? _message;
     private bool _isError;
+    private bool _busy;
 
     private DesignSession Session => Design.Session;
 
@@ -110,12 +125,16 @@
             var content = buffer.ToArray();
 
             Design.LoadPhoto(file.Name, file.ContentType, content);
-            _photoDataUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(content)}";
+            await _canvas.SetPhotoAsync(content);
             ShowInfo("Фото завантажено. Натисніть «Аналіз».");
         }
         catch (IOException)
         {
             ShowError("Не вдалося прочитати файл. Розмір файлу — не більше 10 МБ.");
+        }
+        catch (JSException)
+        {
+            ShowError("Не вдалося показати фото. Спробуйте інший файл.");
         }
         catch (InvalidOperationException ex)
         {
@@ -143,10 +162,40 @@
             ShowError(result.Message);
     }
 
-    private void Choose(CatalogItem item)
+    private async Task ChooseAsync(CatalogItem item)
     {
-        Design.PlaceItem(item, 0, 0);
-        ShowInfo($"Обрано «{item.Name}».");
+        try
+        {
+            Design.PlaceItem(item, 0, 0);
+            await _canvas.SetItemAsync(item.ImageFile);
+            ShowInfo($"Обрано «{item.Name}».");
+        }
+        catch (JSException)
+        {
+            ShowError("Не вдалося показати предмет на фото.");
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _busy = true;
+        try
+        {
+            var png = await _canvas.ExportPngAsync();
+            var result = await Design.SaveAsync(png);
+            if (result.IsSuccess)
+                ShowInfo($"Результат збережено: {Session.SavedResults[^1].FileName}");
+            else
+                ShowError(result.Message);
+        }
+        catch (JSException)
+        {
+            ShowError("Не вдалося сформувати зображення. Спробуйте ще раз.");
+        }
+        finally
+        {
+            _busy = false;
+        }
     }
 
     private void ShowInfo(string text) => (_message, _isError) = (text, false);
