@@ -1,3 +1,6 @@
 <Solution>
+  <Folder Name="/tests/">
+    <Project Path="tests/AiDesigner.Tests/AiDesigner.Tests.csproj" />
+  </Folder>
   <Project Path="AiDesigner.csproj" />
 </Solution>
