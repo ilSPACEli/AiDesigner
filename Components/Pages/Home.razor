@@ -1,7 +1,163 @@
-﻿@page "/"
+@page "/"
+@using AiDesigner.Models
+@using AiDesigner.Services
+@inject DesignService Design
 
-<PageTitle>Home</PageTitle>
+<PageTitle>ШІ-дизайнер інтер'єру</PageTitle>
 
-<h1>Hello, world!</h1>
+<main class="page">
+    <header>
+        <h1>ШІ-дизайнер інтер'єру</h1>
+        <p class="state">Стан сесії: <code>@Session.State</code></p>
+    </header>
 
-Welcome to your new app.
+    @if (!string.IsNullOrEmpty(_message))
+    {
+        <div class="message @(_isError ? "error" : "info")">@_message</div>
+    }
+
+    @* 1. Фото (UC-01) *@
+    <section class="step">
+        <h2>1. Фото приміщення</h2>
+        <InputFile OnChange="OnPhotoSelectedAsync" accept="image/jpeg,image/png"
+                   disabled="@Session.IsAnalyzing" />
+        @if (_photoDataUrl is not null)
+        {
+            <img class="photo" src="@_photoDataUrl" alt="Фото приміщення" />
+        }
+    </section>
+
+    @* 2. Аналіз (UC-02) *@
+    <section class="step">
+        <h2>2. Аналіз</h2>
+        <button class="btn" @onclick="AnalyzeAsync" disabled="@(!CanAnalyze)">
+            @(Session.IsAnalyzing ? "Аналіз…" : "Аналіз")
+        </button>
+
+        @if (Session.Analysis is { } analysis)
+        {
+            <div class="palette">
+                @foreach (var color in analysis.Colors)
+                {
+                    <div class="swatch">
+                        <span class="chip" style="background:@color.Hex"></span>
+                        <span>@color.Hex</span>
+                        <span class="share">@color.Share.ToString("0.#") %</span>
+                    </div>
+                }
+            </div>
+            <p>Освітленість: <strong>@LightingText(analysis.Lighting)</strong></p>
+        }
+    </section>
+
+    @* 3. Пропозиції (UC-03) *@
+    <section class="step">
+        <h2>3. Пропозиції</h2>
+        <button class="btn" @onclick="Suggest" disabled="@(Session.State != SessionState.ANALYZED)">
+            Підібрати предмети
+        </button>
+
+        <ul class="suggestions">
+            @foreach (var suggestion in Session.Suggestions)
+            {
+                var item = suggestion.Item;
+                <li class="@(Session.Placement?.Item.Id == item.Id ? "selected" : null)">
+                    <img src="@item.ImageFile" alt="@item.Name" />
+                    <div class="info">
+                        <strong>@item.Name</strong>
+                        <span>@suggestion.Reason</span>
+                    </div>
+                    <button class="btn" @onclick="() => Choose(item)">Обрати</button>
+                </li>
+            }
+        </ul>
+    </section>
+
+    @* 4. Розміщення й збереження (UC-04) *@
+    <section class="step">
+        <h2>4. Розміщення</h2>
+        @if (Session.Placement is { } placement)
+        {
+            <p>Обрано: <strong>@placement.Item.Name</strong></p>
+        }
+        else
+        {
+            <p class="hint">Оберіть предмет із пропозицій.</p>
+        }
+    </section>
+</main>
+
+@code {
+    // Максимальний розмір, який сторінка взагалі читає.
+    private const long MaxFileSize = 10 * 1024 * 1024;
+
+    private string? _photoDataUrl;
+    private string? _message;
+    private bool _isError;
+
+    private DesignSession Session => Design.Session;
+
+    private bool CanAnalyze => Session.State == SessionState.PHOTO_LOADED && !Session.IsAnalyzing;
+
+    private async Task OnPhotoSelectedAsync(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var file = e.File;
+            await using var stream = file.OpenReadStream(MaxFileSize);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            var content = buffer.ToArray();
+
+            Design.LoadPhoto(file.Name, file.ContentType, content);
+            _photoDataUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(content)}";
+            ShowInfo("Фото завантажено. Натисніть «Аналіз».");
+        }
+        catch (IOException)
+        {
+            ShowError("Не вдалося прочитати файл. Розмір файлу — не більше 10 МБ.");
+        }
+        catch (InvalidOperationException ex)
+        {
+            ShowError(ex.Message);
+        }
+    }
+
+    private async Task AnalyzeAsync()
+    {
+        _message = null;
+        var outcome = await Design.AnalyzeAsync();
+
+        if (outcome.Status == AnalysisStatus.Success)
+            ShowInfo("Аналіз завершено.");
+        else
+            ShowError(outcome.Message);
+    }
+
+    private void Suggest()
+    {
+        var result = Design.Suggest();
+        if (result.IsSuccess)
+            ShowInfo("Оберіть предмет зі списку.");
+        else
+            ShowError(result.Message);
+    }
+
+    private void Choose(CatalogItem item)
+    {
+        Design.PlaceItem(item, 0, 0);
+        ShowInfo($"Обрано «{item.Name}».");
+    }
+
+    private void ShowInfo(string text) => (_message, _isError) = (text, false);
+
+    private void ShowError(string text) => (_message, _isError) = (text, true);
+
+    private static string LightingText(LightingLevel level) => level switch
+    {
+        LightingLevel.DARK => "темне",
+        LightingLevel.MODERATE => "помірне",
+        LightingLevel.BRIGHT => "яскраве",
+        _ => level.ToString()
+    };
+}

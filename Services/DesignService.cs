@@ -24,6 +24,24 @@ public class DesignService
 
     public void LoadPhoto(Photo photo) => Session.ReplacePhoto(photo);
 
+
+    public void LoadPhoto(string fileName, string contentType, byte[] content)
+    {
+        var photo = new Photo
+        {
+            FileName = fileName,
+            Format = contentType switch
+            {
+                "image/jpeg" => "jpeg",
+                "image/png" => "png",
+                _ => contentType
+            },
+            SizeBytes = content.Length,
+            Content = content
+        };
+        LoadPhoto(photo);
+    }
+
     public async Task<AnalysisOutcome> AnalyzeAsync(CancellationToken cancellationToken = default)
     {
         Session.BeginAnalysis();
