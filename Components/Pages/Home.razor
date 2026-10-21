@@ -21,6 +21,7 @@
         <section class="step canvas-panel">
             <h2>1. Фото приміщення</h2>
             <InputFile OnChange="OnPhotoSelectedAsync" accept="image/jpeg,image/png"
+                       aria-label="Оберіть фото приміщення"
                        disabled="@(Session.IsAnalyzing || _busy)" />
             <PhotoCanvas @ref="_canvas" />
             @if (Session.Photo is null)
@@ -124,8 +125,10 @@
             await stream.CopyToAsync(buffer);
             var content = buffer.ToArray();
 
-            Design.LoadPhoto(file.Name, file.ContentType, content);
+            // Спершу показуємо фото: якщо браузер не зможе його декодувати,
+            // сесія лишиться без змін (UC-01, A2).
             await _canvas.SetPhotoAsync(content);
+            Design.LoadPhoto(file.Name, file.ContentType, content);
             ShowInfo("Фото завантажено. Натисніть «Аналіз».");
         }
         catch (IOException)
@@ -166,8 +169,9 @@
     {
         try
         {
-            Design.PlaceItem(item, 0, 0);
+            // Спершу показуємо предмет, щоб полотно й сесія не розійшлися, якщо PNG не завантажиться.
             await _canvas.SetItemAsync(item.ImageFile);
+            Design.PlaceItem(item, 0, 0);
             ShowInfo($"Обрано «{item.Name}».");
         }
         catch (JSException)
