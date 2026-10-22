@@ -1,5 +1,6 @@
 using AiDesigner.Components;
 using AiDesigner.Services;
+using AiDesigner.Services.Analysis;
 using AiDesigner.Services.Stubs;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,7 +10,7 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 // Сервіси v1.0. Заглушки замінюються справжніми реалізаціями в UC-02…UC-04.
-builder.Services.AddSingleton<IPhotoAnalyzer, StubPhotoAnalyzer>();
+builder.Services.AddSingleton<IPhotoAnalyzer, PhotoAnalyzer>();   // UC-02
 builder.Services.AddSingleton<ICatalog, StubCatalog>();
 builder.Services.AddSingleton<IResultStorage, StubResultStorage>();
 
