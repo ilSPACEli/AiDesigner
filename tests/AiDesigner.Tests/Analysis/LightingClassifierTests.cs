@@ -113,4 +113,35 @@ public class LightingClassifierTests
         Assert.Throws<ArgumentException>(() => LightingClassifier.Classify(Array.Empty<Rgb24>()));
         Assert.Throws<ArgumentException>(() => LightingClassifier.IsInsufficientData(Array.Empty<Rgb24>()));
     }
+
+    // ---------- Точні межі без похибок double (рев'ю Copilot) ----------
+
+    [Theory]
+    [InlineData(14, true)]    // яскравість 14 < 15 — майже чорний
+    [InlineData(15, false)]   // рівно 15 — ще ні
+    [InlineData(240, false)]  // рівно 240 — ще ні
+    [InlineData(241, true)]   // 241 > 240 — майже білий
+    public void A1_PixelThresholds_AreExact(byte value, bool extreme)
+    {
+        var pixels = Enumerable.Repeat(Gray(value), 100).ToArray();
+
+        Assert.Equal(extreme, LightingClassifier.IsInsufficientData(pixels));
+    }
+
+    [Fact]
+    public void AC04_MeanJustBelow85_IsDark()
+    {
+        // 999 пікселів по 85 і один 84 — середнє 84.999, строго менше 85.
+        var pixels = Enumerable.Repeat(Gray(85), 999).Append(Gray(84)).ToArray();
+
+        Assert.Equal(LightingLevel.DARK, LightingClassifier.Classify(pixels));
+    }
+
+    [Fact]
+    public void AC04_MeanJustAbove170_IsBright()
+    {
+        var pixels = Enumerable.Repeat(Gray(170), 999).Append(Gray(171)).ToArray();
+
+        Assert.Equal(LightingLevel.BRIGHT, LightingClassifier.Classify(pixels));
+    }
 }

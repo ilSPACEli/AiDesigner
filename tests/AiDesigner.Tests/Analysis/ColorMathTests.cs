@@ -72,4 +72,13 @@ public class ColorMathTests
     {
         Assert.Equal(expected, ColorMath.ToHex(new Rgb24(r, g, b)));
     }
+
+    [Theory]
+    [InlineData(85, 85, 85, 85_000)]
+    [InlineData(170, 170, 170, 170_000)]
+    [InlineData(0, 255, 0, 149_685)]
+    public void LuminanceX1000_IsExactInteger(byte r, byte g, byte b, int expected)
+    {
+        Assert.Equal(expected, ColorMath.LuminanceX1000(new Rgb24(r, g, b)));
+    }
 }

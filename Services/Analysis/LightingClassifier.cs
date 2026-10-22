@@ -6,19 +6,19 @@ namespace AiDesigner.Services.Analysis;
 public static class LightingClassifier
 {
     // Піксель «майже чорний», якщо яскравість менша за це значення
-    public const double NearBlackLimit = 15;
+    public const int NearBlackLimit = 15;
 
     // Піксель «майже білий», якщо яскравість більша за це значення
-    public const double NearWhiteLimit = 240;
+    public const int NearWhiteLimit = 240;
 
     // A1: даних недостатньо, якщо таких пікселів ПОНАД 95 %
     public const double InsufficientShare = 0.95;
 
     // Середня яскравість нижче цього значення — «темне»
-    public const double DarkBelow = 85;
+    public const int DarkBelow = 85;
 
     // Середня яскравість вище цього значення — «яскраве»
-    public const double BrightAbove = 170;
+    public const int BrightAbove = 170;
 
     public static bool IsInsufficientData(IReadOnlyList<Rgb24> pixels)
     {
@@ -27,8 +27,8 @@ public static class LightingClassifier
         var extreme = 0;
         foreach (var pixel in pixels)
         {
-            var luminance = ColorMath.Luminance(pixel);
-            if (luminance < NearBlackLimit || luminance > NearWhiteLimit)
+            var luminance = ColorMath.LuminanceX1000(pixel);
+            if (luminance < NearBlackLimit * 1000 || luminance > NearWhiteLimit * 1000)
                 extreme++;
         }
 
@@ -39,15 +39,16 @@ public static class LightingClassifier
     {
         EnsureNotEmpty(pixels);
 
-        var sum = 0.0;
+        // Сума яскравостей ×1000 у long — без округлень і похибок.
+        // «середнє < 85» те саме, що «сума < 85 · 1000 · кількість»
+        long sum = 0;
         foreach (var pixel in pixels)
-            sum += ColorMath.Luminance(pixel);
+            sum += ColorMath.LuminanceX1000(pixel);
 
-        var mean = Math.Round(sum / pixels.Count, 6);
-
-        if (mean < DarkBelow)
+        long count = pixels.Count;
+        if (sum < DarkBelow * 1000L * count)
             return LightingLevel.DARK;
-        if (mean > BrightAbove)
+        if (sum > BrightAbove * 1000L * count)
             return LightingLevel.BRIGHT;
         return LightingLevel.MODERATE;
     }

@@ -1,24 +1,39 @@
 using AiDesigner.Models;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace AiDesigner.Services.Analysis;
 
 
 public class PhotoAnalyzer : IPhotoAnalyzer
 {
+    // Межа пікселів; у тестах можна зменшити
+    public long MaxPixels { get; init; } = PixelSampler.MaxPixels;
+
     public Task<AnalysisOutcome> AnalyzeAsync(Photo photo, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(photo);
 
         // Аналіз — це чисті обчислення процесора. Task.Run виносить їх в окремий потік,
         // щоб сторінка в цей час залишалась живою й показувала «Аналіз…».
-        return Task.Run(() => Analyze(photo, cancellationToken), cancellationToken);
+        return Task.Run(() => Analyze(photo, cancellationToken, MaxPixels), cancellationToken);
     }
 
 
-    public static AnalysisOutcome Analyze(Photo photo, CancellationToken cancellationToken = default)
+    public static AnalysisOutcome Analyze(
+        Photo photo, CancellationToken cancellationToken = default, long maxPixels = PixelSampler.MaxPixels)
     {
         // 1. Пікселі зменшеного фото (~200 px по ширині).
-        var pixels = PixelSampler.Sample(photo.Content, cancellationToken);
+        Rgb24[] pixels;
+        try
+        {
+            pixels = PixelSampler.Sample(photo.Content, cancellationToken, maxPixels);
+        }
+        catch (ImageTooLargeException)
+        {
+            // E1 із зрозумілою причиною замість загального «сталася помилка»
+            return AnalysisOutcome.Error(
+                $"Фото завелике для аналізу (понад {maxPixels / 1_000_000} Мп). Надайте фото меншої роздільності.");
+        }
 
         // 2. A1: майже все чорне або біле — далі рахувати немає сенсу.
         //    На Activity Diagram «Достатньо даних?» стоїть після обчислень; ми перевіряємо

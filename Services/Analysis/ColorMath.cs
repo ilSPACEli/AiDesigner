@@ -6,8 +6,13 @@ namespace AiDesigner.Services.Analysis;
 public static class ColorMath
 {
 
-    public static double Luminance(Rgb24 color) =>
-        0.299 * color.R + 0.587 * color.G + 0.114 * color.B;
+    // Яскравість ×1000 у цілих числах: 299R + 587G + 114B (0…255000).
+    // Цілі числа рахуються точно, без похибок double на межах 15/85/170/240
+    public static int LuminanceX1000(Rgb24 color) =>
+        299 * color.R + 587 * color.G + 114 * color.B;
+
+    // Яскравість 0.299R + 0.587G + 0.114B (0…255)
+    public static double Luminance(Rgb24 color) => LuminanceX1000(color) / 1000.0;
 
     public static int Hue(Rgb24 color)
     {

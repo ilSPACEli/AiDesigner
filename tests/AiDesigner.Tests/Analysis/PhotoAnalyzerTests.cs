@@ -176,4 +176,17 @@ public class PhotoAnalyzerTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => new PhotoAnalyzer().AnalyzeAsync(PhotoOf(ModerateRoom()), cts.Token));
     }
+
+    // ---------- E1: завелике фото (рев'ю Copilot) ----------
+
+    [Fact]
+    public async Task E1_TooLargePhoto_ReturnsErrorWithReason()
+    {
+        var analyzer = new PhotoAnalyzer { MaxPixels = 100_000 };   // 1000×600 = 600 000 пікселів
+
+        var outcome = await analyzer.AnalyzeAsync(PhotoOf(ModerateRoom()));
+
+        Assert.Equal(AnalysisStatus.Error, outcome.Status);
+        Assert.Contains("завелике", outcome.Message);
+    }
 }

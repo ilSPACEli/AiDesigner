@@ -55,4 +55,26 @@ public class PixelSamplerTests
 
         Assert.ThrowsAny<OperationCanceledException>(() => PixelSampler.Sample(png, cts.Token));
     }
+
+    // ---------- Захист від завеликих зображень (рев'ю Copilot) ----------
+
+    [Fact]
+    public void TooManyPixels_ThrowsBeforeFullDecoding()
+    {
+        var png = TestImages.Solid(400, 300, Red);   // 120 000 пікселів
+
+        var ex = Assert.Throws<ImageTooLargeException>(() => PixelSampler.Sample(png, maxPixels: 100_000));
+        Assert.Equal(400, ex.Width);
+        Assert.Equal(300, ex.Height);
+    }
+
+    [Fact]
+    public void ExactlyMaxPixels_IsAllowed()
+    {
+        var png = TestImages.Solid(400, 250, Red);   // рівно 100 000 пікселів
+
+        var pixels = PixelSampler.Sample(png, maxPixels: 100_000);
+
+        Assert.Equal(200 * 125, pixels.Length);
+    }
 }
