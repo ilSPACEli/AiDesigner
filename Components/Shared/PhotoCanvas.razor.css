@@ -1,0 +1,10 @@
+.canvas-host {
+    width: 100%;
+    margin-top: 12px;
+}
+
+/* ::deep — щоб стиль дістав елементи, які створив Fabric.js, а не Blazor. */
+.canvas-host ::deep .canvas-container {
+    border-radius: 8px;
+    overflow: hidden;
+}
