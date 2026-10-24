@@ -1,0 +1,302 @@
+[
+  {
+    "id": "sofa-01",
+    "name": "Сірий диван",
+    "type": "SOFA",
+    "imageFile": "images/catalog/sofa-01.png",
+    "mainColor": "#82817A",
+    "suitableLightings": [
+      "DARK",
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/6923"
+  },
+  {
+    "id": "sofa-02",
+    "name": "Бежевий диван з подушками",
+    "type": "SOFA",
+    "imageFile": "images/catalog/sofa-02.png",
+    "mainColor": "#997B5A",
+    "suitableLightings": [
+      "DARK",
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/6913"
+  },
+  {
+    "id": "sofa-03",
+    "name": "Синій диван-крісло",
+    "type": "SOFA",
+    "imageFile": "images/catalog/sofa-03.png",
+    "mainColor": "#4B557A",
+    "suitableLightings": [
+      "DARK",
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/6916"
+  },
+  {
+    "id": "sofa-04",
+    "name": "Салатовий диван",
+    "type": "SOFA",
+    "imageFile": "images/catalog/sofa-04.png",
+    "mainColor": "#87AB26",
+    "suitableLightings": [
+      "DARK",
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/6949"
+  },
+  {
+    "id": "armchair-01",
+    "name": "Біле крісло",
+    "type": "ARMCHAIR",
+    "imageFile": "images/catalog/armchair-01.png",
+    "mainColor": "#C7C6BF",
+    "suitableLightings": [
+      "DARK",
+      "MODERATE"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/7033"
+  },
+  {
+    "id": "armchair-02",
+    "name": "Шкіряне крісло кольору коньяку",
+    "type": "ARMCHAIR",
+    "imageFile": "images/catalog/armchair-02.png",
+    "mainColor": "#A66A30",
+    "suitableLightings": [
+      "DARK",
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/7038"
+  },
+  {
+    "id": "armchair-03",
+    "name": "Помаранчеве крісло",
+    "type": "ARMCHAIR",
+    "imageFile": "images/catalog/armchair-03.png",
+    "mainColor": "#E87012",
+    "suitableLightings": [
+      "DARK",
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/7035"
+  },
+  {
+    "id": "armchair-04",
+    "name": "Бордове крісло",
+    "type": "ARMCHAIR",
+    "imageFile": "images/catalog/armchair-04.png",
+    "mainColor": "#5D192E",
+    "suitableLightings": [
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/7026"
+  },
+  {
+    "id": "table-01",
+    "name": "Стіл зі світлого дерева",
+    "type": "TABLE",
+    "imageFile": "images/catalog/table-01.png",
+    "mainColor": "#AC7029",
+    "suitableLightings": [
+      "DARK",
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/6973"
+  },
+  {
+    "id": "table-02",
+    "name": "Стіл з червоного дерева",
+    "type": "TABLE",
+    "imageFile": "images/catalog/table-02.png",
+    "mainColor": "#7E372F",
+    "suitableLightings": [
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/6976"
+  },
+  {
+    "id": "table-03",
+    "name": "Овальний горіховий стіл",
+    "type": "TABLE",
+    "imageFile": "images/catalog/table-03.png",
+    "mainColor": "#9E683E",
+    "suitableLightings": [
+      "DARK",
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/6972"
+  },
+  {
+    "id": "lamp-01",
+    "name": "Білий торшер",
+    "type": "LAMP",
+    "imageFile": "images/catalog/lamp-01.png",
+    "mainColor": "#DDD6CF",
+    "suitableLightings": [
+      "DARK",
+      "MODERATE"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/108735"
+  },
+  {
+    "id": "lamp-02",
+    "name": "Чорна настільна лампа",
+    "type": "LAMP",
+    "imageFile": "images/catalog/lamp-02.png",
+    "mainColor": "#000000",
+    "suitableLightings": [
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/108737"
+  },
+  {
+    "id": "lamp-03",
+    "name": "Лампа з латунною ніжкою",
+    "type": "LAMP",
+    "imageFile": "images/catalog/lamp-03.png",
+    "mainColor": "#E0D2B9",
+    "suitableLightings": [
+      "DARK",
+      "MODERATE"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/108716"
+  },
+  {
+    "id": "lamp-04",
+    "name": "Бежева настільна лампа",
+    "type": "LAMP",
+    "imageFile": "images/catalog/lamp-04.png",
+    "mainColor": "#D9C9B9",
+    "suitableLightings": [
+      "DARK",
+      "MODERATE"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/108700"
+  },
+  {
+    "id": "shelf-01",
+    "name": "Білий стелаж",
+    "type": "SHELF",
+    "imageFile": "images/catalog/shelf-01.png",
+    "mainColor": "#A2A29F",
+    "suitableLightings": [
+      "DARK",
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/107143"
+  },
+  {
+    "id": "shelf-02",
+    "name": "Темний стелаж-драбина",
+    "type": "SHELF",
+    "imageFile": "images/catalog/shelf-02.png",
+    "mainColor": "#261F19",
+    "suitableLightings": [
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/107110"
+  },
+  {
+    "id": "shelf-03",
+    "name": "Консоль із шухлядами",
+    "type": "SHELF",
+    "imageFile": "images/catalog/shelf-03.png",
+    "mainColor": "#7C6E67",
+    "suitableLightings": [
+      "DARK",
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/85372"
+  },
+  {
+    "id": "plant-01",
+    "name": "Базилік у білій мисці",
+    "type": "PLANT",
+    "imageFile": "images/catalog/plant-01.png",
+    "mainColor": "#617E32",
+    "suitableLightings": [
+      "DARK",
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/104945"
+  },
+  {
+    "id": "plant-02",
+    "name": "Алое в теракотовому горщику",
+    "type": "PLANT",
+    "imageFile": "images/catalog/plant-02.png",
+    "mainColor": "#2F4122",
+    "suitableLightings": [
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/104840"
+  },
+  {
+    "id": "plant-03",
+    "name": "Базилік у теракотовому горщику",
+    "type": "PLANT",
+    "imageFile": "images/catalog/plant-03.png",
+    "mainColor": "#609228",
+    "suitableLightings": [
+      "DARK",
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/104940"
+  },
+  {
+    "id": "rug-01",
+    "name": "Сірий килим",
+    "type": "RUG",
+    "imageFile": "images/catalog/rug-01.png",
+    "mainColor": "#BDBCBD",
+    "suitableLightings": [
+      "DARK",
+      "MODERATE"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/57716"
+  },
+  {
+    "id": "rug-02",
+    "name": "Червоний круглий килим",
+    "type": "RUG",
+    "imageFile": "images/catalog/rug-02.png",
+    "mainColor": "#5C0600",
+    "suitableLightings": [
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/21225"
+  },
+  {
+    "id": "rug-03",
+    "name": "Бірюзовий килим",
+    "type": "RUG",
+    "imageFile": "images/catalog/rug-03.png",
+    "mainColor": "#05656A",
+    "suitableLightings": [
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/21218"
+  }
+]
