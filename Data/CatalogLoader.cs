@@ -34,7 +34,8 @@ public static class CatalogLoader
         {
             json = File.ReadAllText(path);
         }
-        catch (IOException ex)
+        // Немає прав на файл — UnauthorizedAccessException, це НЕ IOException, тому ловимо обидва
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             throw new CatalogException($"Не вдалося прочитати файл каталогу: {path}", ex);
         }

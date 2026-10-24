@@ -2,6 +2,7 @@ using AiDesigner.Data;
 using AiDesigner.Models;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace AiDesigner.Tests.Data;
 
@@ -56,6 +57,33 @@ public class CatalogDataTests
         // Прозорий фон (FR-12, AC-08) можливий лише в PNG з альфа-каналом.
         Assert.Equal(PngColorType.RgbWithAlpha, png.ColorType);
         Assert.True(Math.Max(info.Width, info.Height) <= 512, "Зображення має бути зменшене до 512 px.");
+    }
+
+    [Theory]
+    [MemberData(nameof(AllItems))]
+    public void AC12_Image_HasTransparentBackground(string id)
+    {
+        // Альфа-канал ще не означає прозорий фон: PNG RGBA може бути повністю непрозорим
+        // (напр., предмет на білому тлі). Шукаємо хоча б один явно прозорий піксель.
+        using var image = Image.Load<Rgba32>(Path.Combine(RepoPaths.WebRoot, ById(id).ImageFile));
+
+        var hasTransparent = false;
+        image.ProcessPixelRows(rows =>
+        {
+            for (var y = 0; y < rows.Height && !hasTransparent; y++)
+            {
+                foreach (var pixel in rows.GetRowSpan(y))
+                {
+                    if (pixel.A < 128)
+                    {
+                        hasTransparent = true;
+                        break;
+                    }
+                }
+            }
+        });
+
+        Assert.True(hasTransparent, $"У «{id}» немає прозорих пікселів — фон не вирізано.");
     }
 
     // ---------- AC-18 / NFR-05: джерело й ліцензія ----------
