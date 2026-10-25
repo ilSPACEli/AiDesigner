@@ -1,21 +1,18 @@
 namespace AiDesigner.Models;
 
-
 public readonly record struct PlacementValues(int X, int Y, decimal Scale);
 
 
 public static class PlacementGeometry
 {
-    // Початкова ширина предмета — приблизно третина ширини фото
     public const decimal InitialWidthFraction = 1m / 3m;
 
-    // Початкова висота предмета не більша за дві третини висоти фото
     public const decimal InitialHeightFraction = 2m / 3m;
 
-    // Яка частина ширини й висоти предмета щонайменше лишається на фото (AC-09, A2)
     public const decimal MinVisibleFraction = 0.2m;
 
-    // AC-08: предмет по центру фото; великий предмет зменшується, малий не збільшується
+    public const decimal MinItemSizeFraction = 0.1m;
+
     public static PlacementValues Initial(int photoWidth, int photoHeight, int itemWidth, int itemHeight)
     {
         RequirePositive(photoWidth, nameof(photoWidth));
@@ -30,6 +27,16 @@ public static class PlacementGeometry
         return new PlacementValues(photoWidth / 2, photoHeight / 2, scale);
     }
 
+    public static decimal MinScale(int photoWidth, int photoHeight, int itemWidth, int itemHeight)
+    {
+        RequirePositive(photoWidth, nameof(photoWidth));
+        RequirePositive(photoHeight, nameof(photoHeight));
+        RequirePositive(itemWidth, nameof(itemWidth));
+        RequirePositive(itemHeight, nameof(itemHeight));
+
+        return Math.Min(1m,
+            MinItemSizeFraction * Math.Min(photoWidth, photoHeight) / Math.Max(itemWidth, itemHeight));
+    }
 
     public static PlacementValues Clamp(int x, int y, decimal scale,
         int photoWidth, int photoHeight, int itemWidth, int itemHeight)
@@ -40,6 +47,8 @@ public static class PlacementGeometry
         RequirePositive(itemHeight, nameof(itemHeight));
         if (scale <= 0)
             throw new ArgumentOutOfRangeException(nameof(scale), "Масштаб має бути більшим за нуль.");
+
+        scale = Math.Max(scale, MinScale(photoWidth, photoHeight, itemWidth, itemHeight));
 
         return new PlacementValues(
             ClampAxis(x, itemWidth * scale, photoWidth),
