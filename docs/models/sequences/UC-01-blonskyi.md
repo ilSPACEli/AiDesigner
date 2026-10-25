@@ -25,7 +25,9 @@ sequenceDiagram
         DS-->>P: ServiceResult.Ok()
         P->>P: OpenReadStream → byte[] (лише в пам'яті, NFR-04)
         P->>DS: LoadPhotoAsync(fileName, content, _canvas.SetPhotoAsync)
-        alt іде аналіз (FR-13)
+        alt уже йде інше завантаження (IsLoadingPhoto)
+            DS-->>P: Fail(PhotoLoadInProgressMessage)
+        else іде аналіз (FR-13)
             DS-->>P: Fail(PhotoReplaceBlockedMessage)
         else
             DS->>DS: ReadPhoto(fileName, content)
@@ -39,6 +41,7 @@ sequenceDiagram
                 P-->>U: причина відмови; полотно й сесія без змін (A4)
             else фото коректне
                 PH-->>DS: true
+                Note over DS: IsLoadingPhoto = true<br/>(друге завантаження й аналіз відхиляються)
                 DS->>C: showOnCanvas(content) = SetPhotoAsync(content)
                 alt браузер не показав фото
                     C-->>DS: виняток
@@ -51,6 +54,7 @@ sequenceDiagram
                     DS-->>P: ServiceResult.Ok()
                     P-->>U: «Фото завантажено. Натисніть «Аналіз».»
                 end
+                Note over DS: finally: IsLoadingPhoto = false
             end
         end
     end
@@ -59,6 +63,7 @@ sequenceDiagram
 ## Пояснення
 
 - **Порядок «перевірка → полотно → сесія»** задає `DesignService.LoadPhotoAsync`, а не сторінка. Невалідне фото не потрапляє ні на полотно, ні в сесію (A2, A4); це перевіряють тести `AC02_*` у `PhotoUploadTests`.
+- **Одночасні завантаження:** поки `LoadPhotoAsync` чекає полотно, `IsLoadingPhoto = true`: друге завантаження й `AnalyzeAsync` відхиляються, а на сторінці вимкнені обидва поля вибору й кнопка «Аналіз». Прапорець скидається у `finally`.
 - **Формат і розміри — за вмістом файла** (`Image.Identify`), а не за `ContentType` з браузера: WebP, перейменований у `.jpg`, відхиляється.
-- **Камера (FR-01, A3)** — кнопка з `capture="environment"`, показується лише на сенсорних пристроях. Якщо камера недоступна, браузер відкриває вибір файла, а підказка пропонує обрати фото з галереї.
+- **Камера (FR-01, A3)** — кнопка з `capture="environment"`, показується на пристроях із сенсорним екраном (`any-pointer: coarse`). Якщо камера недоступна, браузер відкриває вибір файла, а підказка пропонує обрати фото з галереї.
 - **NFR-04:** фото існує лише як `byte[]` у пам'яті сесії; на диск і в зовнішні сервіси не передається.
