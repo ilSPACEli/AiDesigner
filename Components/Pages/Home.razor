@@ -22,7 +22,7 @@
             <h2>1. Фото приміщення</h2>
             <InputFile OnChange="OnPhotoSelectedAsync" accept="image/jpeg,image/png"
                        aria-label="Оберіть фото приміщення"
-                       disabled="@(Session.IsAnalyzing || _busy)" />
+                       disabled="@(!CanPickPhoto)" />
 
             @* Зйомка камерою (FR-01) — лише на телефоні/планшеті; на ПК блок прихований стилями. *@
             <div class="camera-only">
@@ -31,7 +31,7 @@
                     <InputFile OnChange="OnPhotoSelectedAsync" accept="image/jpeg,image/png"
                                capture="environment"
                                aria-label="Зробити фото камерою"
-                               disabled="@(Session.IsAnalyzing || _busy)" />
+                               disabled="@(!CanPickPhoto)" />
                 </label>
                 @* UC-01 A3: якщо камера недоступна, браузер відкриє вибір файла. *@
                 <p class="hint">Якщо камера недоступна, оберіть фото з галереї кнопкою вище.</p>
@@ -121,44 +121,56 @@
     private string? _message;
     private bool _isError;
     private bool _busy;
+    private bool _loadingPhoto;
 
     private DesignSession Session => Design.Session;
 
-    private bool CanAnalyze => Session.State == SessionState.PHOTO_LOADED && !Session.IsAnalyzing;
+    private bool CanAnalyze =>
+        Session.State == SessionState.PHOTO_LOADED && !Session.IsAnalyzing && !_loadingPhoto && !Design.IsLoadingPhoto;
+
+    // Поки фото читається або показується, обидва поля вибору й «Аналіз» вимкнені (UC-01).
+    private bool CanPickPhoto => !Session.IsAnalyzing && !_busy && !_loadingPhoto && !Design.IsLoadingPhoto;
 
     private async Task OnPhotoSelectedAsync(InputFileChangeEventArgs e)
     {
-        var file = e.File;
-
-        // Завеликий файл відхиляємо ще до читання (NFR-06, UC-01 A2).
-        var sizeCheck = Design.CheckFileSize(file.Size);
-        if (!sizeCheck.IsSuccess)
-        {
-            ShowError(sizeCheck.Message);
+        if (!CanPickPhoto)
             return;
-        }
 
-        byte[] content;
+        _loadingPhoto = true;
         try
         {
+            var file = e.File;
+
+            // Завеликий файл відхиляємо ще до читання (NFR-06, UC-01 A2).
+            var sizeCheck = Design.CheckFileSize(file.Size);
+            if (!sizeCheck.IsSuccess)
+            {
+                ShowError(sizeCheck.Message);
+                return;
+            }
+
             // Фото тримаємо тільки в пам'яті, на диск не пишемо (NFR-04).
             await using var stream = file.OpenReadStream(Photo.MaxSizeBytes);
             using var buffer = new MemoryStream();
             await stream.CopyToAsync(buffer);
-            content = buffer.ToArray();
-        }
-        catch (IOException)
-        {
-            ShowError("Не вдалося прочитати файл. Спробуйте ще раз.");
-            return;
-        }
+            var content = buffer.ToArray();
 
-        // Порядок «перевірка → полотно → сесія» гарантує сервіс.
-        var result = await Design.LoadPhotoAsync(file.Name, content, _canvas.SetPhotoAsync);
-        if (result.IsSuccess)
-            ShowInfo("Фото завантажено. Натисніть «Аналіз».");
-        else
-            ShowError(result.Message);
+            // Порядок «перевірка → полотно → сесія» гарантує сервіс.
+            var result = await Design.LoadPhotoAsync(file.Name, content, _canvas.SetPhotoAsync);
+            if (result.IsSuccess)
+                ShowInfo("Фото завантажено. Натисніть «Аналіз».");
+            else
+                ShowError(result.Message);
+        }
+        catch (Exception)
+        {
+            // Будь-яка непередбачена помилка — повідомлення, а не падіння сторінки.
+            ShowError("Не вдалося завантажити фото. Спробуйте ще раз або оберіть інший файл.");
+        }
+        finally
+        {
+            _loadingPhoto = false;
+        }
     }
 
     private async Task AnalyzeAsync()

@@ -30,6 +30,15 @@ public class DesignService
     public const string PhotoShowFailedMessage =
         "Не вдалося показати фото. Спробуйте інший файл.";
 
+    public const string PhotoLoadInProgressMessage =
+        "Зачекайте: попереднє фото ще завантажується.";
+
+    /// <summary>
+    /// true, поки LoadPhotoAsync чекає на полотно. У цей час друге завантаження
+    /// й аналіз відхиляються, щоб полотно й сесія не розійшлися.
+    /// </summary>
+    public bool IsLoadingPhoto { get; private set; }
+
     /// <summary>
     /// Перевіряє розмір файла ДО його читання (NFR-06): сторінка знає розмір одразу,
     /// тож завеликий файл відхиляється з нормальною причиною, а не з IOException.
@@ -47,6 +56,11 @@ public class DesignService
     /// <param name="showOnCanvas">Як показати фото на екрані (на сторінці — PhotoCanvas.SetPhotoAsync).</param>
     public async Task<ServiceResult> LoadPhotoAsync(string fileName, byte[] content, Func<byte[], Task> showOnCanvas)
     {
+        // Одночасно — лише одне завантаження: інакше вони можуть завершитися не по черзі
+        // (на полотні фото B, а в сесії — A).
+        if (IsLoadingPhoto)
+            return ServiceResult.Fail(PhotoLoadInProgressMessage);
+
         // Під час аналізу заміна заблокована (FR-13): не показуємо фото, яке сесія все одно не прийме.
         if (Session.IsAnalyzing)
             return ServiceResult.Fail(PhotoReplaceBlockedMessage);
@@ -59,17 +73,47 @@ public class DesignService
         if (!photo.Validate())
             return ServiceResult.Fail(photo.RejectionReason!);
 
+        IsLoadingPhoto = true;
         try
         {
-            await showOnCanvas(content);
+            try
+            {
+                await showOnCanvas(content);
+            }
+            catch (Exception)
+            {
+                // Браузер не зміг показати фото — сесію не змінюємо.
+                return ServiceResult.Fail(PhotoShowFailedMessage);
+            }
+
+            // Повторна перевірка після await: поки чекали полотно, стан міг змінитися.
+            if (Session.IsAnalyzing)
+            {
+                await RestoreCanvasAsync(showOnCanvas);
+                return ServiceResult.Fail(PhotoReplaceBlockedMessage);
+            }
+
+            return LoadPhoto(photo);
+        }
+        finally
+        {
+            IsLoadingPhoto = false;   // скидаємо завжди, навіть після помилки
+        }
+    }
+
+    // Повертає на полотно фото, яке зараз у сесії, щоб полотно й сесія не розійшлися.
+    private async Task RestoreCanvasAsync(Func<byte[], Task> showOnCanvas)
+    {
+        if (Session.Photo is not { } current)
+            return;
+        try
+        {
+            await showOnCanvas(current.Content);
         }
         catch (Exception)
         {
-            // Браузер не зміг показати фото — сесію не змінюємо.
-            return ServiceResult.Fail(PhotoShowFailedMessage);
+            // Не вдалося — користувач усе одно побачить повідомлення про відмову.
         }
-
-        return LoadPhoto(photo);
     }
 
     /// <summary>Записує вже прочитане фото в сесію, якщо воно відповідає NFR-06.</summary>
@@ -78,7 +122,15 @@ public class DesignService
         if (!photo.Validate())
             return ServiceResult.Fail(photo.RejectionReason!);
 
-        Session.ReplacePhoto(photo);   // скидає аналіз, пропозиції й розміщення (FR-13, A1)
+        try
+        {
+            Session.ReplacePhoto(photo);   // скидає аналіз, пропозиції й розміщення (FR-13, A1)
+        }
+        catch (InvalidOperationException)
+        {
+            // Сесія заблокувала заміну (іде аналіз) — повідомлення замість падіння сторінки.
+            return ServiceResult.Fail(PhotoReplaceBlockedMessage);
+        }
         return ServiceResult.Ok();
     }
 
@@ -124,6 +176,10 @@ public class DesignService
 
     public async Task<AnalysisOutcome> AnalyzeAsync(CancellationToken cancellationToken = default)
     {
+        // UC-01: поки нове фото завантажується, аналіз не запускаємо — сесія лишається без змін.
+        if (IsLoadingPhoto)
+            return AnalysisOutcome.Error(PhotoLoadInProgressMessage);
+
         Session.BeginAnalysis();
 
         var outcome = await RunAnalyzerAsync(Session.Photo!, cancellationToken);
