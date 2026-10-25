@@ -4,7 +4,6 @@ using AiDesigner.Services.Stubs;
 
 namespace AiDesigner.Tests;
 
-/// <summary>UC-04: розміщення, переміщення й заміна предмета на рівні DesignService.</summary>
 public class DesignServicePlacementTests
 {
     // Фото 800×600; предмет 512×492 (як у каталозі).
@@ -12,7 +11,11 @@ public class DesignServicePlacementTests
 
     private static Photo CreatePhoto() => new()
     {
-        FileName = "room.jpg", Format = "jpeg", Width = PhotoW, Height = PhotoH, SizeBytes = 1000,
+        FileName = "room.jpg",
+        Format = "jpeg",
+        Width = PhotoW,
+        Height = PhotoH,
+        SizeBytes = 1000,
         Content = new byte[] { 1, 2, 3 }
     };
 
@@ -116,6 +119,19 @@ public class DesignServicePlacementTests
 
         Assert.Equal(SessionState.SAVED, service.Session.State);
         Assert.Throws<InvalidOperationException>(() => service.UpdatePlacement(10, 10, 1m, ItemW, ItemH));
+    }
+
+    [Fact]
+    public async Task AC09_UpdatePlacement_TooSmallScale_IsRaisedToMinimumAndStored()
+    {
+        var service = await CreateSuggestedAsync();
+        service.PlaceItemAtCenter(service.Session.Suggestions[0].Item, ItemW, ItemH);
+        var min = PlacementGeometry.MinScale(PhotoW, PhotoH, ItemW, ItemH);
+
+        var result = service.UpdatePlacement(400, 300, 0.001m, ItemW, ItemH);
+
+        Assert.Equal(min, result.Scale);
+        Assert.Equal(min, service.Session.Placement!.Scale);
     }
 
     // ---------- AC-10 ----------

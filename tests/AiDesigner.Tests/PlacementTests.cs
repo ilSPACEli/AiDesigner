@@ -124,4 +124,65 @@ public class PlacementTests
         Assert.Throws<ArgumentOutOfRangeException>(
             () => PlacementGeometry.Clamp(0, 0, (decimal)scale, PhotoW, PhotoH, ItemW, ItemH));
     }
+
+    // ---------- AC-09: мінімальний розмір предмета ----------
+
+    [Fact]
+    public void AC09_MinScale_LongerSideIsTenthOfShorterPhotoSide()
+    {
+        var min = PlacementGeometry.MinScale(PhotoW, PhotoH, ItemW, ItemH);
+
+        Assert.Equal(0.15625m, min);   // 0.1 * 800 / 512
+        Assert.Equal(80m, Math.Max(ItemW, ItemH) * min);
+    }
+
+    [Fact]
+    public void AC09_MinScale_SmallItem_IsNeverAboveOne()
+    {
+        var min = PlacementGeometry.MinScale(3000, 2000, 100, 100);
+
+        Assert.Equal(1m, min);
+    }
+
+    [Fact]
+    public void AC09_Clamp_ScaleBelowMinimum_IsRaisedToMinimum()
+    {
+        var p = PlacementGeometry.Clamp(500, 400, 0.01m, PhotoW, PhotoH, ItemW, ItemH);
+
+        Assert.Equal(PlacementGeometry.MinScale(PhotoW, PhotoH, ItemW, ItemH), p.Scale);
+    }
+
+    [Fact]
+    public void AC09_Clamp_ScaleEqualToMinimum_IsUnchanged()
+    {
+        var min = PlacementGeometry.MinScale(PhotoW, PhotoH, ItemW, ItemH);
+
+        var p = PlacementGeometry.Clamp(500, 400, min, PhotoW, PhotoH, ItemW, ItemH);
+
+        Assert.Equal(min, p.Scale);
+    }
+
+    [Fact]
+    public void AC09_Clamp_TinyScaleFarOutside_PositionUsesRaisedScale()
+    {
+        var p = PlacementGeometry.Clamp(-50000, 50000, 0.001m, PhotoW, PhotoH, ItemW, ItemH);
+
+        var w = ItemW * p.Scale;
+        var h = ItemH * p.Scale;
+        Assert.True(Overlap(p.X, w, PhotoW) >= w * PlacementGeometry.MinVisibleFraction);
+        Assert.True(Overlap(p.Y, h, PhotoH) >= h * PlacementGeometry.MinVisibleFraction);
+    }
+
+    [Theory]
+    [InlineData(1000, 800, 512, 492)]
+    [InlineData(640, 480, 512, 492)]
+    [InlineData(4000, 3000, 100, 100)]
+    [InlineData(3000, 600, 200, 512)]
+    [InlineData(480, 5000, 512, 492)]
+    public void AC08_Initial_ScaleIsNotBelowMinimum(int pw, int ph, int iw, int ih)
+    {
+        var start = PlacementGeometry.Initial(pw, ph, iw, ih);
+
+        Assert.True(start.Scale >= PlacementGeometry.MinScale(pw, ph, iw, ih));
+    }
 }
