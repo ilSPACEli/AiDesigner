@@ -234,6 +234,89 @@ public class PhotoUploadTests
         await analysis;
     }
 
+    // ---------- Одночасні завантаження (рев'ю PR) ----------
+
+    // Полотно, яке «показує» фото лише тоді, коли тест відпустить gate.
+    private sealed class SlowCanvas
+    {
+        private readonly TaskCompletionSource _gate = new();
+
+        public Task Show(byte[] content) => _gate.Task;
+
+        public void Release() => _gate.SetResult();
+    }
+
+    [Fact]
+    public async Task AC01_SecondLoadWhileFirstInProgress_IsRejected()
+    {
+        var service = CreateService();
+        var slow = new SlowCanvas();
+        var first = service.LoadPhotoAsync("a.jpg", Jpeg(800, 600), slow.Show);   // чекає полотно
+        Assert.True(service.IsLoadingPhoto);
+        var canvas = new FakeCanvas();
+
+        var second = await service.LoadPhotoAsync("b.png", Png(1024, 768), canvas.Show);
+
+        Assert.False(second.IsSuccess);
+        Assert.Equal(DesignService.PhotoLoadInProgressMessage, second.Message);
+        Assert.Equal(0, canvas.Calls);
+
+        slow.Release();
+        Assert.True((await first).IsSuccess);
+        Assert.Equal("a.jpg", service.Session.Photo!.FileName);   // у сесії перше фото
+        Assert.False(service.IsLoadingPhoto);
+    }
+
+    [Fact]
+    public async Task AC01_AnalysisWhilePhotoLoading_IsRejected_SessionUnchanged()
+    {
+        var service = CreateService();
+        await service.LoadPhotoAsync("a.jpg", Jpeg(800, 600), new FakeCanvas().Show);
+        var slow = new SlowCanvas();
+        var loading = service.LoadPhotoAsync("b.jpg", Jpeg(1024, 768), slow.Show);
+
+        var outcome = await service.AnalyzeAsync();
+
+        Assert.Equal(AnalysisStatus.Error, outcome.Status);
+        Assert.Equal(DesignService.PhotoLoadInProgressMessage, outcome.Message);
+        Assert.False(service.Session.IsAnalyzing);
+        Assert.Equal(SessionState.PHOTO_LOADED, service.Session.State);
+
+        slow.Release();
+        Assert.True((await loading).IsSuccess);
+        Assert.Equal("b.jpg", service.Session.Photo!.FileName);
+    }
+
+    [Fact]
+    public async Task AC02_CanvasFails_LoadingFlagIsReset()
+    {
+        var service = CreateService();
+
+        await service.LoadPhotoAsync("a.jpg", Jpeg(800, 600), _ => throw new InvalidOperationException());
+        var next = await service.LoadPhotoAsync("b.jpg", Jpeg(800, 600), new FakeCanvas().Show);
+
+        Assert.False(service.IsLoadingPhoto);
+        Assert.True(next.IsSuccess);
+    }
+
+    [Fact]
+    public async Task AC13_LoadPhotoDuringAnalysis_ReturnsFail_DoesNotThrow()
+    {
+        var gate = new TaskCompletionSource<AnalysisOutcome>();
+        var service = CreateService(new SlowAnalyzer(gate.Task));
+        service.LoadPhoto(new Photo { FileName = "a.jpg", Format = "jpeg", Width = 800, Height = 600, SizeBytes = 10 });
+        var analysis = service.AnalyzeAsync();
+
+        var result = service.LoadPhoto(new Photo { FileName = "b.jpg", Format = "jpeg", Width = 800, Height = 600, SizeBytes = 10 });
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(DesignService.PhotoReplaceBlockedMessage, result.Message);
+        Assert.Equal("a.jpg", service.Session.Photo!.FileName);
+
+        gate.SetResult(AnalysisOutcome.Error("стоп"));
+        await analysis;
+    }
+
     private sealed class SlowAnalyzer(Task<AnalysisOutcome> result) : IPhotoAnalyzer
     {
         public Task<AnalysisOutcome> AnalyzeAsync(Photo photo, CancellationToken cancellationToken = default) => result;
