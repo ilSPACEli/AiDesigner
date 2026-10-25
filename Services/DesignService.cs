@@ -256,6 +256,33 @@ public class DesignService
     public void PlaceItem(CatalogItem item, int x, int y) =>
         Session.PlaceItem(new Placement(item, x, y));
 
+    // ---------- UC-04. Розмістити предмет на фото ----------
+
+    public PlacementValues PlaceItemAtCenter(CatalogItem item, int itemWidth, int itemHeight)
+    {
+        var photo = Session.Photo
+            ?? throw new InvalidOperationException($"Неможливо розмістити предмет у стані {Session.State}.");
+
+        var start = PlacementGeometry.Initial(photo.Width, photo.Height, itemWidth, itemHeight);
+        Session.PlaceItem(new Placement(item, start.X, start.Y, start.Scale));
+        return start;
+    }
+
+
+    public PlacementValues UpdatePlacement(int x, int y, decimal scale, int itemWidth, int itemHeight)
+    {
+        if (Session.State != SessionState.ITEM_PLACED
+            || Session.Placement is not { } placement
+            || Session.Photo is not { } photo)
+            throw new InvalidOperationException($"Неможливо змінити положення предмета у стані {Session.State}.");
+
+        // Спершу обчислюємо (може кинути виняток), потім змінюємо: розміщення не лишиться «наполовину».
+        var clamped = PlacementGeometry.Clamp(x, y, scale, photo.Width, photo.Height, itemWidth, itemHeight);
+        placement.Move(clamped.X - placement.X, clamped.Y - placement.Y);
+        placement.Resize(clamped.Scale);
+        return clamped;
+    }
+
     public async Task<ServiceResult> SaveAsync(byte[] pngBytes, CancellationToken cancellationToken = default)
     {
         // Перевіряємо стан ДО запису файлу, щоб не створити файл, який сесія не прийме.

@@ -11,11 +11,12 @@ public class Placement
 
     public decimal Scale { get; private set; } = 1.0m;
 
-    public Placement(CatalogItem item, int x, int y)
+    public Placement(CatalogItem item, int x, int y, decimal scale = 1.0m)
     {
         Item = item;
         X = x;
         Y = y;
+        Resize(scale);   // та сама перевірка «масштаб > 0», що й при зміні розміру
     }
 
     public void Move(int dx, int dy)
@@ -24,7 +25,7 @@ public class Placement
         Y += dy;
     }
 
-  
+
     public void Resize(decimal scale)
     {
         if (scale <= 0)
