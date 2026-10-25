@@ -70,3 +70,15 @@ h2 { margin: 0 0 12px; font-size: 1.15rem; }
 .saved { margin: 12px 0 0; padding-left: 18px; color: #444; font-size: 0.9rem; }
 
 .hint { color: #777; margin: 10px 0 0; }
+
+/* UC-01: кнопка камери — тільки на сенсорних пристроях (телефон, планшет), на ПК прихована. */
+.camera-only { display: none; margin-top: 10px; }
+@media (pointer: coarse) {
+    .camera-only { display: block; }
+}
+.camera-btn { display: inline-block; position: relative; overflow: hidden; }
+/* Саме поле вибору файла робимо невидимим (не display:none — так надійніше на iOS):
+   натискання на підпис-кнопку відкриває камеру. */
+.camera-btn ::deep input[type="file"] {
+    position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none;
+}

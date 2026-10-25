@@ -23,6 +23,20 @@
             <InputFile OnChange="OnPhotoSelectedAsync" accept="image/jpeg,image/png"
                        aria-label="Оберіть фото приміщення"
                        disabled="@(Session.IsAnalyzing || _busy)" />
+
+            @* Зйомка камерою (FR-01) — лише на телефоні/планшеті; на ПК блок прихований стилями. *@
+            <div class="camera-only">
+                <label class="btn camera-btn">
+                    Зробити фото камерою
+                    <InputFile OnChange="OnPhotoSelectedAsync" accept="image/jpeg,image/png"
+                               capture="environment"
+                               aria-label="Зробити фото камерою"
+                               disabled="@(Session.IsAnalyzing || _busy)" />
+                </label>
+                @* UC-01 A3: якщо камера недоступна, браузер відкриє вибір файла. *@
+                <p class="hint">Якщо камера недоступна, оберіть фото з галереї кнопкою вище.</p>
+            </div>
+
             <PhotoCanvas @ref="_canvas" />
             @if (Session.Photo is null)
             {
@@ -103,9 +117,6 @@
 </main>
 
 @code {
-    // Найбільший файл, який сторінка взагалі читає. Точні обмеження NFR-06 перевіряє UC-01.
-    private const long MaxFileSize = 10 * 1024 * 1024;
-
     private PhotoCanvas _canvas = default!;
     private string? _message;
     private bool _isError;
@@ -117,32 +128,37 @@
 
     private async Task OnPhotoSelectedAsync(InputFileChangeEventArgs e)
     {
+        var file = e.File;
+
+        // Завеликий файл відхиляємо ще до читання (NFR-06, UC-01 A2).
+        var sizeCheck = Design.CheckFileSize(file.Size);
+        if (!sizeCheck.IsSuccess)
+        {
+            ShowError(sizeCheck.Message);
+            return;
+        }
+
+        byte[] content;
         try
         {
-            var file = e.File;
-            await using var stream = file.OpenReadStream(MaxFileSize);
+            // Фото тримаємо тільки в пам'яті, на диск не пишемо (NFR-04).
+            await using var stream = file.OpenReadStream(Photo.MaxSizeBytes);
             using var buffer = new MemoryStream();
             await stream.CopyToAsync(buffer);
-            var content = buffer.ToArray();
-
-            // Спершу показуємо фото: якщо браузер не зможе його декодувати,
-            // сесія лишиться без змін (UC-01, A2).
-            await _canvas.SetPhotoAsync(content);
-            Design.LoadPhoto(file.Name, file.ContentType, content);
-            ShowInfo("Фото завантажено. Натисніть «Аналіз».");
+            content = buffer.ToArray();
         }
         catch (IOException)
         {
-            ShowError("Не вдалося прочитати файл. Розмір файлу — не більше 10 МБ.");
+            ShowError("Не вдалося прочитати файл. Спробуйте ще раз.");
+            return;
         }
-        catch (JSException)
-        {
-            ShowError("Не вдалося показати фото. Спробуйте інший файл.");
-        }
-        catch (InvalidOperationException ex)
-        {
-            ShowError(ex.Message);
-        }
+
+        // Порядок «перевірка → полотно → сесія» гарантує сервіс.
+        var result = await Design.LoadPhotoAsync(file.Name, content, _canvas.SetPhotoAsync);
+        if (result.IsSuccess)
+            ShowInfo("Фото завантажено. Натисніть «Аналіз».");
+        else
+            ShowError(result.Message);
     }
 
     private async Task AnalyzeAsync()
