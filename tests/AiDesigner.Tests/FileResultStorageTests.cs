@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace AiDesigner.Tests;
 
+/// <summary>FileResultStorage: AC-11 (файл PNG) і E1 (помилка збереження, файлу немає).</summary>
 public sealed class FileResultStorageTests : IDisposable
 {
     // Кожен тест працює у власній тимчасовій папці, яку знищує Dispose.
@@ -118,6 +119,39 @@ public sealed class FileResultStorageTests : IDisposable
         var storage = new FileResultStorage(OutputDir);
 
         await Assert.ThrowsAsync<ArgumentException>(() => storage.SaveAsync(new byte[] { 1, 2, 3 }));
+
+        Assert.Empty(FilesInOutput());
+    }
+
+    [Fact]
+    public async Task E1_SignatureWithGarbage_Throws_AndNothingIsWritten()
+    {
+        var storage = new FileResultStorage(OutputDir);
+        var fake = new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3, 4, 5, 6, 7, 8 };
+
+        await Assert.ThrowsAsync<ArgumentException>(() => storage.SaveAsync(fake));
+
+        Assert.Empty(FilesInOutput());
+    }
+
+    [Fact]
+    public async Task E1_TruncatedPng_Throws_AndNothingIsWritten()
+    {
+        var storage = new FileResultStorage(OutputDir);
+        var truncated = CreatePng().Take(20).ToArray();   // обірвано посеред заголовка IHDR
+
+        await Assert.ThrowsAsync<ArgumentException>(() => storage.SaveAsync(truncated));
+
+        Assert.Empty(FilesInOutput());
+    }
+
+    [Fact]
+    public async Task E1_PngWithoutImageData_Throws_AndNothingIsWritten()
+    {
+        var storage = new FileResultStorage(OutputDir);
+        var headerOnly = CreatePng().Take(33).ToArray();   // сигнатура + повний IHDR, без IDAT
+
+        await Assert.ThrowsAsync<ArgumentException>(() => storage.SaveAsync(headerOnly));
 
         Assert.Empty(FilesInOutput());
     }

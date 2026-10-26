@@ -1,9 +1,15 @@
 using AiDesigner.Models;
 using Microsoft.AspNetCore.Hosting;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Png;
 
 namespace AiDesigner.Services;
 
-
+/// <summary>
+/// Зберігає результат (PNG) у папку <c>output/</c> поруч із застосунком (FR-11, UC-04).
+/// Це єдине, що застосунок пише на диск: вхідне фото лишається тільки в пам'яті (NFR-04).
+/// </summary>
 public class FileResultStorage : IResultStorage
 {
     // Перші 8 байтів будь-якого PNG-файла.
@@ -11,11 +17,13 @@ public class FileResultStorage : IResultStorage
 
     private readonly string _directory;
 
+    /// <summary>Для DI: папка <c>output/</c> у корені застосунку.</summary>
     public FileResultStorage(IWebHostEnvironment environment)
         : this(Path.Combine(environment.ContentRootPath, "output"))
     {
     }
 
+    /// <summary>Для тестів: довільна папка.</summary>
     public FileResultStorage(string outputDirectory)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(outputDirectory);
@@ -25,8 +33,8 @@ public class FileResultStorage : IResultStorage
     public async Task<ResultImage> SaveAsync(byte[] pngBytes, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(pngBytes);
-        if (!HasPngSignature(pngBytes))
-            throw new ArgumentException("Дані не є зображенням PNG.", nameof(pngBytes));
+        cancellationToken.ThrowIfCancellationRequested();
+        await EnsureValidPngAsync(pngBytes, cancellationToken);
 
         var now = DateTime.Now;
         var fileName = $"result-{now:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..8]}.png";
@@ -37,7 +45,8 @@ public class FileResultStorage : IResultStorage
 
         try
         {
-            // Пишемо у тимчасовий файл і лише потім перейменовуємо
+            // Пишемо у тимчасовий файл і лише потім перейменовуємо: якщо запис обірветься,
+            // готового .png не з'явиться (UC-04 E1: «файл не створюється»).
             await File.WriteAllBytesAsync(tempPath, pngBytes, cancellationToken);
             File.Move(tempPath, finalPath);
         }
@@ -48,6 +57,27 @@ public class FileResultStorage : IResultStorage
         }
 
         return new ResultImage { FileName = fileName, Format = "png", CreatedAt = now };
+    }
+
+    // Сигнатури замало: обрізаний або пошкоджений файл теж починається з 89 50 4E 47.
+    // Тому PNG декодується повністю, і на диск потрапляє лише те, що відкриється (AC-11).
+    private static async Task EnsureValidPngAsync(byte[] bytes, CancellationToken cancellationToken)
+    {
+        if (!HasPngSignature(bytes))
+            throw new ArgumentException("Дані не є зображенням PNG.", nameof(bytes));
+
+        try
+        {
+            using var stream = new MemoryStream(bytes, writable: false);
+            using var image = await Image.LoadAsync(stream, cancellationToken);
+            if (image.Metadata.DecodedImageFormat is not PngFormat)
+                throw new ArgumentException("Дані не є зображенням PNG.", nameof(bytes));
+        }
+        catch (ImageFormatException ex)
+        {
+            // UnknownImageFormatException і InvalidImageContentException (обрізаний чи пошкоджений файл).
+            throw new ArgumentException("Зображення PNG пошкоджене або неповне.", nameof(bytes), ex);
+        }
     }
 
     private static bool HasPngSignature(byte[] bytes) =>
