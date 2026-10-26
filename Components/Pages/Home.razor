@@ -37,10 +37,14 @@
                 <p class="hint">Якщо камера недоступна, оберіть фото з галереї кнопкою вище.</p>
             </div>
 
-            <PhotoCanvas @ref="_canvas" />
+            <PhotoCanvas @ref="_canvas" OnPlacementChanged="OnPlacementChanged" />
             @if (Session.Photo is null)
             {
                 <p class="hint">Оберіть фото у форматі JPEG або PNG.</p>
+            }
+            else if (Session.State == SessionState.SAVED)
+            {
+                <p class="hint">Результат збережено. Щоб продовжити редагування, оберіть інший предмет.</p>
             }
             else if (Session.Placement is not null)
             {
@@ -197,14 +201,29 @@
     {
         try
         {
-            // Спершу показуємо предмет, щоб полотно й сесія не розійшлися, якщо PNG не завантажиться.
-            await _canvas.SetItemAsync(item.ImageFile);
-            Design.PlaceItem(item, 0, 0);
+            // Предмет спершу прихований: показати його треба вже на місці, а місце рахує сервіс (AC-08).
+            var size = await _canvas.SetItemAsync(item.ImageFile, hidden: true);
+            var start = Design.PlaceItemAtCenter(item, size.Width, size.Height);
+            await _canvas.ApplyPlacementAsync(start);
             ShowInfo($"Обрано «{item.Name}».");
         }
         catch (JSException)
         {
             ShowError("Не вдалося показати предмет на фото.");
+        }
+    }
+
+    // Користувач відпустив предмет: зберігаємо положення (FR-09) і повертаємо полотну остаточні значення.
+    private PlacementValues OnPlacementChanged(int x, int y, decimal scale, int itemWidth, int itemHeight)
+    {
+        try
+        {
+            return Design.UpdatePlacement(x, y, scale, itemWidth, itemHeight);
+        }
+        catch (InvalidOperationException) when (Session.Placement is { } placed)
+        {
+            // Стан уже інший (напр., збережено): полотно повертаємо до того, що в сесії.
+            return new PlacementValues(placed.X, placed.Y, placed.Scale);
         }
     }
 
@@ -216,7 +235,10 @@
             var png = await _canvas.ExportPngAsync();
             var result = await Design.SaveAsync(png);
             if (result.IsSuccess)
+            {
+                await _canvas.SetLockedAsync(true);   // після збереження предмет не рухається
                 ShowInfo($"Результат збережено: {Session.SavedResults[^1].FileName}");
+            }
             else
                 ShowError(result.Message);
         }
