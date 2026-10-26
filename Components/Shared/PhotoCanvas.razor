@@ -41,8 +41,8 @@
     }
 
 
-    public async Task<ItemSize> SetItemAsync(string imageUrl, bool hidden = false) =>
-        await Canvas.InvokeAsync<ItemSize>("setItem", imageUrl, hidden);
+    public async Task<ItemSize?> SetItemAsync(string imageUrl, bool hidden = false) =>
+        await Canvas.InvokeAsync<ItemSize?>("setItem", imageUrl, hidden);
 
     public async Task ApplyPlacementAsync(PlacementValues placement) =>
         await Canvas.InvokeVoidAsync("applyPlacement", placement.X, placement.Y, placement.Scale);

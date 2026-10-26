@@ -210,13 +210,21 @@
         {
             // Предмет спершу прихований: показати його треба вже на місці, а місце рахує сервіс (AC-08).
             var size = await _canvas.SetItemAsync(item.ImageFile, hidden: true);
+            if (size is null)
+            {
+                // Браузер виконує застарілу копію photoCanvas.js: розмірів предмета немає.
+                ShowError("Не вдалося показати предмет на фото. Оновіть сторінку (Ctrl+F5) і спробуйте ще раз.");
+                return;
+            }
+
             var start = Design.PlaceItemAtCenter(item, size.Width, size.Height);
             await _canvas.ApplyPlacementAsync(start);
             ShowInfo($"Обрано «{item.Name}».");
         }
-        catch (JSException)
+        catch (Exception)
         {
-            ShowError("Не вдалося показати предмет на фото.");
+            // Будь-яка непередбачена помилка — повідомлення, а не падіння сторінки (як у UC-01).
+            ShowError("Не вдалося показати предмет на фото. Спробуйте ще раз.");
         }
         finally
         {
@@ -246,22 +254,37 @@
         {
             var png = await _canvas.ExportPngAsync();
             var result = await Design.SaveAsync(png);
-            if (result.IsSuccess)
+            if (!result.IsSuccess)
             {
-                await _canvas.SetLockedAsync(true);   // після збереження предмет не рухається
-                ShowInfo($"Результат збережено: {Session.SavedResults[^1].FileName}");
-            }
-            else
                 ShowError(result.Message);
+                return;
+            }
+
+            ShowInfo($"Результат збережено: {Session.SavedResults[^1].FileName}");
+            await LockCanvasAsync();
         }
-        catch (JSException)
+        catch (Exception)
         {
-            ShowError("Не вдалося сформувати зображення. Спробуйте ще раз.");
+            // Будь-яка непередбачена помилка — повідомлення, а не падіння сторінки (як у UC-01).
+            ShowError("Не вдалося зберегти результат. Спробуйте ще раз.");
         }
         finally
         {
             _busy = false;
             _saving = false;
+        }
+    }
+
+    // Після збереження предмет не рухається. Файл уже збережено, тому збій блокування не критичний:
+    // якщо предмет таки зрушать, UpdatePlacement у стані SAVED відхилить зміну, а полотно повернеться до сесії.
+    private async Task LockCanvasAsync()
+    {
+        try
+        {
+            await _canvas.SetLockedAsync(true);
+        }
+        catch (Exception)
+        {
         }
     }
 
