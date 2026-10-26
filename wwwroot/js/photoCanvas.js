@@ -1,7 +1,8 @@
 
 
+// Дзеркало PlacementGeometry.MinVisibleFraction. Міняти лише разом із C#.
 const MIN_VISIBLE_FRACTION = 0.2;
-
+// Дзеркало PlacementGeometry.MinItemSizeFraction (найменший розмір предмета).
 const MIN_ITEM_SIZE_FRACTION = 0.1;
 
 class PhotoCanvas {
@@ -16,6 +17,8 @@ class PhotoCanvas {
         this.photoWidth = 0;   // розміри оригіналу, px
         this.photoHeight = 0;
         this.item = null;      // поточний предмет на полотні
+        this.itemRequest = 0;    // номер останнього виклику setItem (відсікає застарілі)
+        this.modifyRequest = 0;  // номер останнього виклику C# після відпускання предмета
 
         // Під час руху — лише локальне обмеження, без викликів сервера (NFR-02).
         this.canvas.on("object:moving", e => this.keepOnPhoto(e.target));
@@ -52,7 +55,12 @@ class PhotoCanvas {
     // Повертає природні розміри PNG: за ними C# рахує положення (AC-08).
     // hidden = true: не показувати, доки C# не надішле положення через applyPlacement.
     async setItem(url, hidden = false) {
+        const request = ++this.itemRequest;
         const item = await loadImage(url);
+        // Поки PNG вантажився, міг початися новіший вибір: тоді цей предмет уже не потрібен.
+        if (request !== this.itemRequest) {
+            throw new Error("Вибір предмета застарів.");
+        }
         if (this.item) {
             this.canvas.remove(this.item);
         }
@@ -165,6 +173,10 @@ class PhotoCanvas {
         const itemScale = target.scaleX / k;
         if (!(itemScale > 0)) return;
 
+        // Кожне відпускання — окремий запит. Приймаємо відповідь лише на останній:
+        // старіша могла б повернути предмет на місце з-перед наступного перетягування.
+        const request = ++this.modifyRequest;
+
         try {
             const result = await this.dotNetRef.invokeMethodAsync(
                 "OnItemModified",
@@ -174,8 +186,8 @@ class PhotoCanvas {
                 target.width,
                 target.height);
 
-            // Якщо за цей час предмет замінили чи користувач знову його тягне — не чіпаємо.
-            if (result && target === this.item && !this.canvas._currentTransform) {
+            // Не чіпаємо, якщо відповідь застаріла, предмет замінили чи користувач знову його тягне.
+            if (result && request === this.modifyRequest && target === this.item && !this.canvas._currentTransform) {
                 this.applyPlacement(result.x ?? result.X, result.y ?? result.Y, result.scale ?? result.Scale);
             }
         } catch (error) {
@@ -189,9 +201,7 @@ class PhotoCanvas {
     }
 }
 
-// Одна вісь: центр, розмір предмета, розмір фото — усе в пікселях оригіналу.
-// Те саме правило, що в PlacementGeometry (C#), але без округлення до цілих:
-// під час руху потрібна плавність, а до цілих значення доведе C# після відпускання.
+
 function clampAxis(center, size, photo) {
     const min = size * (MIN_VISIBLE_FRACTION - 0.5);
     const max = photo + size * (0.5 - MIN_VISIBLE_FRACTION);

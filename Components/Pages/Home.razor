@@ -104,7 +104,7 @@
                 <h2>4. Збереження</h2>
                 <button class="btn" @onclick="SaveAsync"
                         disabled="@(Session.State != SessionState.ITEM_PLACED || _busy)">
-                    @(_busy ? "Збереження…" : "Зберегти")
+                    @(_saving ? "Збереження…" : "Зберегти")
                 </button>
                 @if (Session.SavedResults.Count > 0)
                 {
@@ -125,6 +125,7 @@
     private string? _message;
     private bool _isError;
     private bool _busy;
+    private bool _saving;   // лише для напису на кнопці «Зберегти»
     private bool _loadingPhoto;
 
     private DesignSession Session => Design.Session;
@@ -199,6 +200,12 @@
 
     private async Task ChooseAsync(CatalogItem item)
     {
+        // Один вибір за раз: інакше два швидкі кліки покажуть на полотні один предмет, а в сесію запишуть інший.
+        // Поки _busy, кнопки «Обрати», «Зберегти» й вибір нового фото вимкнені.
+        if (_busy)
+            return;
+
+        _busy = true;
         try
         {
             // Предмет спершу прихований: показати його треба вже на місці, а місце рахує сервіс (AC-08).
@@ -210,6 +217,10 @@
         catch (JSException)
         {
             ShowError("Не вдалося показати предмет на фото.");
+        }
+        finally
+        {
+            _busy = false;
         }
     }
 
@@ -230,6 +241,7 @@
     private async Task SaveAsync()
     {
         _busy = true;
+        _saving = true;
         try
         {
             var png = await _canvas.ExportPngAsync();
@@ -249,6 +261,7 @@
         finally
         {
             _busy = false;
+            _saving = false;
         }
     }
 
