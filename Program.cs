@@ -28,7 +28,13 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseStaticFiles();
+// The browser revalidates static files (ETag) on every load, so an outdated
+// photoCanvas.js is never used after an update. no-cache keeps the cache: an
+// unchanged file costs only a short 304 response.
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx => ctx.Context.Response.Headers.CacheControl = "no-cache"
+});
 app.UseAntiforgery();
 
 app.MapRazorComponents<App>()
