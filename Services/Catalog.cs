@@ -5,7 +5,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Hosting;
 using AiDesigner.Models;
 using AiDesigner.Data;
-using AiDesigner.Services.Analysis; 
+using AiDesigner.Services.Analysis;
 
 namespace AiDesigner.Services;
 
@@ -96,6 +96,7 @@ public class Catalog : ICatalog
             }
         }
 
+        // Створюємо нові об'єкти Suggestion, щоб задати Rank (init-only)
         var rankedSuggestions = new List<Suggestion>();
         for (int i = 0; i < finalSuggestions.Count; i++)
         {
