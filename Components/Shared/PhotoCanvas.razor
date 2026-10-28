@@ -1,3 +1,4 @@
+@using AiDesigner.Models
 @implements IAsyncDisposable
 @inject IJSRuntime JS
 
@@ -11,6 +12,13 @@
     private ElementReference _host;
     private IJSObjectReference? _module;
     private IJSObjectReference? _canvas;
+    private DotNetObjectReference<PhotoCanvas>? _self;
+
+    public record ItemSize(int Width, int Height);
+
+
+    [Parameter]
+    public Func<int, int, decimal, int, int, PlacementValues>? OnPlacementChanged { get; set; }
 
     private IJSObjectReference Canvas =>
         _canvas ?? throw new InvalidOperationException("Полотно ще не готове.");
@@ -21,10 +29,10 @@
             return;
 
         _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/photoCanvas.js");
-        _canvas = await _module.InvokeAsync<IJSObjectReference>("create", _host);
+        _self = DotNetObjectReference.Create(this);
+        _canvas = await _module.InvokeAsync<IJSObjectReference>("create", _host, _self);
     }
 
-    /// <summary>Показати фото. Байти передаються потоком, а не одним великим повідомленням.</summary>
     public async Task SetPhotoAsync(byte[] content)
     {
         using var stream = new MemoryStream(content);
@@ -32,11 +40,16 @@
         await Canvas.InvokeVoidAsync("setPhoto", streamRef);
     }
 
-    /// <summary>Показати предмет (шлях до PNG відносно wwwroot).</summary>
-    public async Task SetItemAsync(string imageUrl) =>
-        await Canvas.InvokeVoidAsync("setItem", imageUrl);
 
-    /// <summary>Отримати PNG «фото + предмет» у роздільності оригіналу.</summary>
+    public async Task<ItemSize?> SetItemAsync(string imageUrl, bool hidden = false) =>
+        await Canvas.InvokeAsync<ItemSize?>("setItem", imageUrl, hidden);
+
+    public async Task ApplyPlacementAsync(PlacementValues placement) =>
+        await Canvas.InvokeVoidAsync("applyPlacement", placement.X, placement.Y, placement.Scale);
+
+    public async Task SetLockedAsync(bool locked) =>
+        await Canvas.InvokeVoidAsync("setLocked", locked);
+
     public async Task<byte[]> ExportPngAsync()
     {
         await using var jsStream = await Canvas.InvokeAsync<IJSStreamReference>("exportPng");
@@ -45,6 +58,11 @@
         await stream.CopyToAsync(buffer);
         return buffer.ToArray();
     }
+
+    [JSInvokable]
+    public PlacementValues OnItemModified(int x, int y, decimal scale, int itemWidth, int itemHeight) =>
+        OnPlacementChanged?.Invoke(x, y, scale, itemWidth, itemHeight)
+        ?? throw new InvalidOperationException("Обробника зміни положення немає.");
 
     public async ValueTask DisposeAsync()
     {
@@ -61,6 +79,10 @@
         catch (JSDisconnectedException)
         {
             // Користувач закрив вкладку — браузера вже немає, прибирати нічого.
+        }
+        finally
+        {
+            _self?.Dispose();
         }
     }
 }

@@ -12,7 +12,7 @@ builder.Services.AddRazorComponents()
 // Сервіси v1.0. Заглушки замінюються справжніми реалізаціями в UC-02…UC-04.
 builder.Services.AddSingleton<IPhotoAnalyzer, PhotoAnalyzer>();   // UC-02
 builder.Services.AddSingleton<ICatalog, StubCatalog>();
-builder.Services.AddSingleton<IResultStorage, StubResultStorage>();
+builder.Services.AddSingleton<IResultStorage, FileResultStorage>();
 
 builder.Services.AddScoped<DesignService>();
 
