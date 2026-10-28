@@ -11,19 +11,19 @@ namespace AiDesigner.Services;
 
 public class Catalog : ICatalog
 {
-    private readonly IReadOnlyList<CatalogItem> _items;
+    private readonly Lazy<IReadOnlyList<CatalogItem>> _itemsLoader;
 
-    public IReadOnlyList<CatalogItem> Items => _items;
+    public IReadOnlyList<CatalogItem> Items => _itemsLoader.Value;
 
     public Catalog(IWebHostEnvironment env)
     {
         string path = Path.Combine(env.WebRootPath, CatalogLoader.DefaultRelativePath);
-        _items = CatalogLoader.LoadFromFile(path);
+        _itemsLoader = new Lazy<IReadOnlyList<CatalogItem>>(() => CatalogLoader.LoadFromFile(path));
     }
 
     public Catalog(IReadOnlyList<CatalogItem> items)
     {
-        _items = items ?? new List<CatalogItem>();
+        _itemsLoader = new Lazy<IReadOnlyList<CatalogItem>>(() => items ?? new List<CatalogItem>());
     }
 
     public IReadOnlyList<Suggestion> Select(AnalysisResult analysis, int count)
@@ -31,9 +31,13 @@ public class Catalog : ICatalog
         var candidates = new List<Suggestion>();
         var fallbacks = new List<Suggestion>();
 
-        var topColors = analysis.Colors?.Take(2).ToList() ?? new List<DominantColor>();
+        var topColors = analysis.Colors?
+            .Where(c => !ColorHelper.IsNeutral(c.Hex))
+            .OrderByDescending(c => c.Share)
+            .Take(2)
+            .ToList() ?? new List<DominantColor>();
 
-        foreach (var item in _items)
+        foreach (var item in _itemsLoader.Value)
         {
             if (item.SuitableLightings == null || !item.SuitableLightings.Contains(analysis.Lighting))
                 continue;
@@ -96,7 +100,6 @@ public class Catalog : ICatalog
             }
         }
 
-        // Створюємо нові об'єкти Suggestion, щоб задати Rank (init-only)
         var rankedSuggestions = new List<Suggestion>();
         for (int i = 0; i < finalSuggestions.Count; i++)
         {
@@ -115,13 +118,13 @@ public class Catalog : ICatalog
 
     private (int Score, string Reason) EvaluateItemColor(CatalogItem item, List<DominantColor> topColors)
     {
-        bool isItemNeutral = ColorHelper.IsNeutral(item.MainColor);
+        if (ColorHelper.IsNeutral(item.MainColor))
+            return (1, "Універсальний нейтральний колір, що підходить для цієї кімнати.");
+
         double itemHue = GetHue(item.MainColor);
 
         foreach (var domColor in topColors)
         {
-            if (ColorHelper.IsNeutral(domColor.Hex))
-                continue;
 
             if (ColorHelper.IsAnalogous(itemHue, domColor.Hue))
                 return (2, "Аналогова гармонія з домінантним кольором інтер'єру.");
@@ -129,9 +132,6 @@ public class Catalog : ICatalog
             if (ColorHelper.IsComplementary(itemHue, domColor.Hue))
                 return (2, "Комплементарна гармонія (яскравий акцент) до кольору інтер'єру.");
         }
-
-        if (isItemNeutral)
-            return (1, "Універсальний нейтральний колір, що підходить для цієї кімнати.");
 
         return (0, string.Empty);
     }
