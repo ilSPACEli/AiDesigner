@@ -26,7 +26,7 @@ public class PhotoAnalyzerTests
         (new Rgb24(60, 40, 30), 50), (new Rgb24(30, 40, 70), 30), (new Rgb24(70, 60, 50), 20));
 
     private static byte[] ModerateRoom() => TestImages.Stripes(1000, 600,
-        (new Rgb24(180, 120, 90), 50), (new Rgb24(90, 110, 140), 30), (new Rgb24(150, 150, 140), 20));
+        (new Rgb24(180, 120, 90), 50), (new Rgb24(90, 110, 140), 30), (new Rgb24(60, 70, 80), 20));
 
     private static byte[] BrightRoom() => TestImages.Stripes(1000, 600,
         (new Rgb24(240, 230, 215), 50), (new Rgb24(220, 225, 235), 30), (new Rgb24(200, 210, 190), 20));

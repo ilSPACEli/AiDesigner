@@ -14,11 +14,13 @@ public static class LightingClassifier
     // A1: даних недостатньо, якщо таких пікселів ПОНАД 95 %
     public const double InsufficientShare = 0.95;
 
-    // Середня яскравість нижче цього значення — «темне»
-    public const int DarkBelow = 85;
+    // Середня яскравість нижче цього значення — «темне».
+    // CR-02: було 85; відкалібровано на реальних фото (приймальна перевірка AC-04).
+    public const int DarkBelow = 55;
 
-    // Середня яскравість вище цього значення — «яскраве»
-    public const int BrightAbove = 170;
+    // Середня яскравість вище цього значення — «яскраве».
+    // CR-02: було 170 — недосяжно для реальних фото: автоекспозиція камери
+    public const int BrightAbove = 125;
 
     public static bool IsInsufficientData(IReadOnlyList<Rgb24> pixels)
     {
@@ -40,7 +42,7 @@ public static class LightingClassifier
         EnsureNotEmpty(pixels);
 
         // Сума яскравостей ×1000 у long — без округлень і похибок.
-        // «середнє < 85» те саме, що «сума < 85 · 1000 · кількість»
+        // «середнє < DarkBelow» те саме, що «сума < DarkBelow · 1000 · кількість»
         long sum = 0;
         foreach (var pixel in pixels)
             sum += ColorMath.LuminanceX1000(pixel);
