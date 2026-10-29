@@ -21,6 +21,13 @@ public static class ColorHelper
         return GetHueDistance(oppositeHue, hue2) <= 30.0;
     }
 
+    // Відтінок (0–360°) кольору "#RRGGBB"; для сірих — 0
+    public static double GetHue(string hex)
+    {
+        ExtractHsl(hex, out double h, out _, out _);
+        return h;
+    }
+
     public static bool IsNeutral(string hex)
     {
         ExtractHsl(hex, out double h, out double s, out double l);

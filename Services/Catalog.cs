@@ -11,6 +11,10 @@ namespace AiDesigner.Services;
 
 public class Catalog : ICatalog
 {
+    // R5 / UC-03 A2: позначка для предметів, доданих лише за освітленістю (формулювання з ТЗ)
+    public const string PartialMatchReason =
+        "Часткова відповідність за кольором: предмет підходить лише за освітленістю.";
+
     private readonly Lazy<IReadOnlyList<CatalogItem>> _itemsLoader;
 
     public IReadOnlyList<CatalogItem> Items => _itemsLoader.Value;
@@ -59,7 +63,7 @@ public class Catalog : ICatalog
                 {
                     Item = item,
                     Score = 0,
-                    Reason = "Часткова відповідність (лише за рівнем освітлення)."
+                    Reason = PartialMatchReason
                 });
             }
         }
@@ -121,7 +125,7 @@ public class Catalog : ICatalog
         if (ColorHelper.IsNeutral(item.MainColor))
             return (1, "Універсальний нейтральний колір, що підходить для цієї кімнати.");
 
-        double itemHue = GetHue(item.MainColor);
+        double itemHue = ColorHelper.GetHue(item.MainColor);
 
         foreach (var domColor in topColors)
         {
@@ -134,26 +138,5 @@ public class Catalog : ICatalog
         }
 
         return (0, string.Empty);
-    }
-
-    private double GetHue(string hex)
-    {
-        hex = hex.TrimStart('#');
-        if (hex.Length != 6) return 0;
-
-        double r = Convert.ToInt32(hex.Substring(0, 2), 16) / 255.0;
-        double g = Convert.ToInt32(hex.Substring(2, 2), 16) / 255.0;
-        double b = Convert.ToInt32(hex.Substring(4, 2), 16) / 255.0;
-
-        double max = Math.Max(r, Math.Max(g, b));
-        double min = Math.Min(r, Math.Min(g, b));
-        if (max == min) return 0;
-
-        double d = max - min;
-        double h = max == r ? (g - b) / d + (g < b ? 6 : 0) 
-               : max == g ? (b - r) / d + 2 
-               : (r - g) / d + 4;
-
-        return h * 60;
     }
 }
