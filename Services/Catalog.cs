@@ -12,6 +12,9 @@ namespace AiDesigner.Services;
 public class Catalog : ICatalog
 {
     // R5 / UC-03 A2: позначка для предметів, доданих лише за освітленістю (формулювання з ТЗ)
+    // R3: не більше двох предметів одного типу
+    public const int MaxPerType = 2;
+
     public const string PartialMatchReason =
         "Часткова відповідність за кольором: предмет підходить лише за освітленістю.";
 
@@ -76,32 +79,16 @@ public class Catalog : ICatalog
         var finalSuggestions = new List<Suggestion>();
         var typeCounts = new Dictionary<ItemType, int>();
 
-        foreach (var candidate in sortedCandidates)
-        {
-            if (finalSuggestions.Count >= count) break;
+        // R3 (CR-03): спершу різні типи, другий предмет того самого типу — лише якщо типів не вистачає
+        PickDiverse(sortedCandidates, finalSuggestions, typeCounts, count);
 
-            typeCounts.TryGetValue(candidate.Item.Type, out int currentTypeCount);
-            if (currentTypeCount < 2)
-            {
-                finalSuggestions.Add(candidate);
-                typeCounts[candidate.Item.Type] = currentTypeCount + 1;
-            }
-        }
+        // R4: у переліку вищий бал — вище; за рівних балів лишається порядок добору (стабільне сортування)
+        finalSuggestions = finalSuggestions.OrderByDescending(s => s.Score).ToList();
 
         if (finalSuggestions.Count < 3)
         {
             var sortedFallbacks = fallbacks.OrderBy(f => f.Item.Id).ToList();
-            foreach (var fallback in sortedFallbacks)
-            {
-                if (finalSuggestions.Count >= count) break;
-
-                typeCounts.TryGetValue(fallback.Item.Type, out int currentTypeCount);
-                if (currentTypeCount < 2)
-                {
-                    finalSuggestions.Add(fallback);
-                    typeCounts[fallback.Item.Type] = currentTypeCount + 1;
-                }
-            }
+            PickDiverse(sortedFallbacks, finalSuggestions, typeCounts, count);
         }
 
         var rankedSuggestions = new List<Suggestion>();
@@ -118,6 +105,30 @@ public class Catalog : ICatalog
         }
 
         return rankedSuggestions;
+    }
+
+    // Двопрохідний добір за R3: перший прохід бере лише предмети нових типів,
+    // другий — другий предмет того самого типу (до MaxPerType), поки є місце.
+    private static void PickDiverse(IReadOnlyList<Suggestion> ordered, List<Suggestion> result,
+        Dictionary<ItemType, int> typeCounts, int count)
+    {
+        for (var limit = 1; limit <= MaxPerType; limit++)
+        {
+            foreach (var suggestion in ordered)
+            {
+                if (result.Count >= count)
+                    return;
+                if (result.Contains(suggestion))
+                    continue;
+
+                typeCounts.TryGetValue(suggestion.Item.Type, out var taken);
+                if (taken >= limit)
+                    continue;
+
+                result.Add(suggestion);
+                typeCounts[suggestion.Item.Type] = taken + 1;
+            }
+        }
     }
 
     private (int Score, string Reason) EvaluateItemColor(CatalogItem item, List<DominantColor> topColors)
