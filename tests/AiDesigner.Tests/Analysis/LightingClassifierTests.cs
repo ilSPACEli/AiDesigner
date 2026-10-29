@@ -73,11 +73,11 @@ public class LightingClassifierTests
 
     [Theory]
     [InlineData(40, LightingLevel.DARK)]
-    [InlineData(84, LightingLevel.DARK)]
-    [InlineData(85, LightingLevel.MODERATE)]   // межа 85 — уже «помірне»
-    [InlineData(128, LightingLevel.MODERATE)]
-    [InlineData(170, LightingLevel.MODERATE)]  // межа 170 — ще «помірне»
-    [InlineData(171, LightingLevel.BRIGHT)]
+    [InlineData(54, LightingLevel.DARK)]
+    [InlineData(55, LightingLevel.MODERATE)]   // межа 55 — уже «помірне» (CR-02)
+    [InlineData(100, LightingLevel.MODERATE)]
+    [InlineData(125, LightingLevel.MODERATE)]  // межа 125 — ще «помірне» (CR-02)
+    [InlineData(126, LightingLevel.BRIGHT)]
     [InlineData(220, LightingLevel.BRIGHT)]
     public void AC04_LightingLevel_ByMeanLuminance(byte value, LightingLevel expected)
     {
@@ -129,18 +129,18 @@ public class LightingClassifierTests
     }
 
     [Fact]
-    public void AC04_MeanJustBelow85_IsDark()
+    public void AC04_MeanJustBelowDarkLimit_IsDark()
     {
-        // 999 пікселів по 85 і один 84 — середнє 84.999, строго менше 85.
-        var pixels = Enumerable.Repeat(Gray(85), 999).Append(Gray(84)).ToArray();
+        // 999 пікселів по 55 і один 54 — середнє 54.999, строго менше 55.
+        var pixels = Enumerable.Repeat(Gray(55), 999).Append(Gray(54)).ToArray();
 
         Assert.Equal(LightingLevel.DARK, LightingClassifier.Classify(pixels));
     }
 
     [Fact]
-    public void AC04_MeanJustAbove170_IsBright()
+    public void AC04_MeanJustAboveBrightLimit_IsBright()
     {
-        var pixels = Enumerable.Repeat(Gray(170), 999).Append(Gray(171)).ToArray();
+        var pixels = Enumerable.Repeat(Gray(125), 999).Append(Gray(126)).ToArray();
 
         Assert.Equal(LightingLevel.BRIGHT, LightingClassifier.Classify(pixels));
     }
