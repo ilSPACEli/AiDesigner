@@ -29,7 +29,7 @@ dotnet run
 dotnet test
 ```
 
-Збірка для розгортання: `dotnet publish -c Release -o publish`, запуск — `publish/AiDesigner.exe` (Windows) або `dotnet publish/AiDesigner.dll`.
+Збірка для розгортання: `dotnet publish AiDesigner.csproj -c Release -o publish`, запуск — `publish/AiDesigner.exe` (Windows) або `dotnet publish/AiDesigner.dll`.
 
 
 ## Структура
