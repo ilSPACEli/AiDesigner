@@ -157,6 +157,44 @@ public class CatalogRulesTests
         Assert.Contains(result, s => s.Item.Id == "x-lamp");
     }
 
+    [Fact]
+    public void R3_DifferentTypesFirst_WhenEnoughTypes()
+    {
+        // Два дивани йдуть першими за id, але є ще три інші типи — другий диван не потрібен (CR-03).
+        var catalog = new Catalog(new[]
+        {
+            Item("s1", ItemType.SOFA, "#FF0000"),
+            Item("s2", ItemType.SOFA, "#FF0011"),
+            Item("x-lamp", ItemType.LAMP, "#FF1100"),
+            Item("x-rug", ItemType.RUG, "#FF2200"),
+            Item("x-table", ItemType.TABLE, "#FF0022")
+        });
+
+        var result = catalog.Select(Palette(LightingLevel.MODERATE, ("#FF0000", 100)), 4);
+
+        Assert.Equal(4, result.Count);
+        Assert.Equal(4, result.Select(s => s.Item.Type).Distinct().Count());
+        Assert.DoesNotContain(result, s => s.Item.Id == "s2");
+    }
+
+    [Fact]
+    public void R3_SecondOfSameType_OnlyWhenTypesRunOut_AndHigherScoreStaysFirst()
+    {
+        // Типів лише два: другий диван добирається другим проходом.
+        // У переліку вищий бал — вище, навіть якщо предмет добрано пізніше.
+        var catalog = new Catalog(new[]
+        {
+            Item("a-sofa", ItemType.SOFA, "#FF0000"),     // 2
+            Item("b-sofa", ItemType.SOFA, "#FF0011"),     // 2
+            Item("c-lamp", ItemType.LAMP, "#808080")      // 1 — нейтральний
+        });
+
+        var result = catalog.Select(Palette(LightingLevel.MODERATE, ("#FF0000", 100)), 4);
+
+        Assert.Equal(new[] { "a-sofa", "b-sofa", "c-lamp" }, result.Select(s => s.Item.Id));
+        Assert.Equal(new[] { 1, 2, 3 }, result.Select(s => s.Rank));
+    }
+
     // ---------- R4: ранжування ----------
 
     [Fact]
