@@ -1,10 +1,19 @@
 using AiDesigner.Components;
+using AiDesigner.Services;
+using AiDesigner.Services.Analysis;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+// Сервіси v1.0. Заглушки замінюються справжніми реалізаціями в UC-02…UC-04.
+builder.Services.AddSingleton<IPhotoAnalyzer, PhotoAnalyzer>();   // UC-02
+builder.Services.AddSingleton<ICatalog, Catalog>();
+builder.Services.AddSingleton<IResultStorage, FileResultStorage>();
+
+builder.Services.AddScoped<DesignService>();
 
 var app = builder.Build();
 
@@ -18,7 +27,13 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseStaticFiles();
+// The browser revalidates static files (ETag) on every load, so an outdated
+// photoCanvas.js is never used after an update. no-cache keeps the cache: an
+// unchanged file costs only a short 304 response.
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx => ctx.Context.Response.Headers.CacheControl = "no-cache"
+});
 app.UseAntiforgery();
 
 app.MapRazorComponents<App>()

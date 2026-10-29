@@ -1,0 +1,17 @@
+# Line endings.
+# Text files are always stored in the repository with LF, regardless of each
+# member's `core.autocrlf`, so files no longer show as modified when only
+# line endings differ.
+# Line endings in the working tree still depend on local Git settings:
+# CRLF if `core.autocrlf=true`, LF if `core.autocrlf=input`, otherwise `core.eol`
+# (default `native`: CRLF on Windows, LF on Linux/macOS).
+* text=auto
+
+# Binary files: never convert.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.woff  binary
+*.woff2 binary

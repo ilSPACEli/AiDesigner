@@ -1,28 +1,34 @@
 # Матриця простежуваності (RTM) v1.0
 
-Ланцюг: вимога → Use Case → критерій приймання → проєктний артефакт. У ЛР №4 останній стовпець буде продовжено до реалізації та перевірки.
+Ланцюг: вимога → Use Case → критерій приймання → проєктний артефакт → реалізація → перевірка. Стовпці «Реалізація» й «Перевірка» заповнено в ЛР №4 за фактичним кодом і [приймальними перевірками](acceptance.md).
 
-| Вимога | Use Case | Критерій приймання | Проєктний артефакт | Перевірка |
-|--------|----------|--------------------|--------------------|-----------|
-| FR-01 Надати фото | UC-01 | AC-01 | [Activity UC-01](../model/activity-uc-01.md); Use Case Diagram; Class `Photo`; State `EMPTY → PHOTO_LOADED` | ЛР №4 |
-| FR-02 Відхилити некоректне фото | UC-01 (A2) | AC-02 | Class `Photo.validate()` | ЛР №4 |
-| FR-03 Колірна гама | UC-02 | AC-03 | [Activity UC-02](../model/activity-uc-02.md); Class `AnalysisResult`, `DominantColor` | ЛР №4 |
-| FR-04 Рівень освітленості | UC-02 | AC-04 | Activity UC-02; Class `AnalysisResult`, `LightingLevel` | ЛР №4 |
-| FR-05 Показ результату аналізу | UC-02 | AC-05 | Activity UC-02; State `ANALYZED` | ЛР №4 |
-| FR-06 Добір 3–4 предметів | UC-03 | AC-06 | [Activity UC-03](../model/activity-uc-03.md); Class `Catalog.select()`, `Suggestion`; правила R1–R4 ([requirements.md](requirements.md#4-правила-добору-початкова-версія)) | ЛР №4 |
-| FR-07 Показ пропозицій | UC-03 | AC-07 | Class `Suggestion`; State `SUGGESTIONS_SHOWN` | ЛР №4 |
-| FR-08 Накласти предмет | UC-04 | AC-08 | [Activity UC-04](../model/activity-uc-04.md); Class `Placement`; State `ITEM_PLACED` | ЛР №4 |
-| FR-09 Переміщення й розмір | UC-04 | AC-09 | Class `Placement.move()`, `resize()` | ЛР №4 |
-| FR-10 Обрати інший предмет | UC-04 | AC-10 | State Machine (`ITEM_PLACED → SUGGESTIONS_SHOWN`) | ЛР №4 |
-| FR-11 Зберегти результат | UC-04 | AC-11 | Class `ResultImage`; State `SAVED` | ЛР №4 |
-| FR-12 Каталог предметів | UC-03 | AC-12 | Class `Catalog`, `CatalogItem`, `ItemType` | ЛР №4 |
-| FR-13 Замінити фото | UC-01; UC-02 (блокування заміни під час аналізу) | AC-13 | State Machine (переходи до `PHOTO_LOADED`) | ЛР №4 |
-| NFR-01 Аналіз ≤ 30 с | UC-02 (E1) | AC-14 | Activity UC-02 (рішення «не довше 30 с?») | План перевірки у ЛР №4 |
-| NFR-02 Відгук ≤ 200 мс | UC-04 | AC-15 | — (проєктне рішення на етапі реалізації) | План перевірки у ЛР №4 |
-| NFR-03 Сценарій ≤ 5 хв | UC-01…UC-04 | AC-16 | Use Case Diagram | Тест на 3+ користувачах, ЛР №4 |
-| NFR-04 Приватність | UC-02 | AC-17 | Class `Photo` (не зберігається після сесії); Activity UC-02 | ЛР №4 |
-| NFR-05 Ліцензії | UC-03 | AC-18 | Class `CatalogItem.licenseSource` | Перевірка каталогу, ЛР №4 |
+| Вимога | Use Case | Критерій приймання | Проєктний артефакт | Реалізація | Перевірка |
+|--------|----------|--------------------|--------------------|------------|-----------|
+| FR-01 Надати фото | UC-01 | AC-01 | [Activity UC-01](../model/activity-uc-01.md); Use Case Diagram; Class `Photo`; State `EMPTY → PHOTO_LOADED` | `Home.razor` (вибір файла, камера `capture`); `DesignService.LoadPhotoAsync`; `DesignSession.ReplacePhoto` | `AC01_*` (`PhotoValidationTests`, `PhotoUploadTests`) — **Пройдено** |
+| FR-03 Колірна гама | UC-02 | AC-03 | [Activity UC-02](../model/activity-uc-02.md); Class `AnalysisResult`, `DominantColor` | `PixelSampler`, `KMeans`, `PaletteBuilder`, `PhotoAnalyzer` | `AC03_*` (`PaletteBuilderTests`, `PhotoAnalyzerTests`); ручна: 4 з 5 фото, [acceptance.md 2.2](acceptance.md#22-ac-03--домінантний-колір-5-фото) — **Пройдено** |
+| FR-04 Рівень освітленості | UC-02 | AC-04 | Activity UC-02; Class `AnalysisResult`, `LightingLevel` | `LightingClassifier` (пороги 55/125, CR-02) | `AC04_*` (`LightingClassifierTests`, `PhotoAnalyzerTests`); ручна: 4 з 6 після калібрування, [acceptance.md 2.3](acceptance.md#23-ac-04--освітленість-6-фото) — **Не пройдено** (відоме обмеження) |
+| FR-05 Показ результату аналізу | UC-02 | AC-05 | Activity UC-02; State `ANALYZED` | `DesignSession.CompleteAnalysis`; `Home.razor` (палітра, освітленість) | `AC05_*` (`PhotoAnalyzerTests`); скриншот, [acceptance.md 2.4](acceptance.md#24-ac-05-ac-07--показ-на-екрані) — **Пройдено** |
+| FR-06 Добір 3–4 предметів | UC-03 | AC-06 | [Activity UC-03](../model/activity-uc-03.md); Class `Catalog.select()`, `Suggestion`; правила R1–R5 ([requirements.md](requirements.md#4-правила-добору-початкова-версія)) | `Catalog.Select`, `Catalog.PickDiverse`, `ColorHelper` (CR-01, CR-03) | `AC06_*`, `R1_*`…`R5_*` (`CatalogRulesTests`, `CatalogTests`), зокрема на справжньому каталозі: 5 палітр × 3 рівні — **Пройдено** |
+| FR-07 Показ пропозицій | UC-03 | AC-07 | Class `Suggestion`; State `SUGGESTIONS_SHOWN` | `Catalog.EvaluateItemColor` (причина добору); `Home.razor` (список пропозицій) | `AC07_*` (`CatalogTests`); скриншот, [acceptance.md 2.4](acceptance.md#24-ac-05-ac-07--показ-на-екрані) — **Пройдено** |
+| FR-08 Накласти предмет | UC-04 | AC-08 | [Activity UC-04](../model/activity-uc-04.md); Class `Placement`; State `ITEM_PLACED` | `PlacementGeometry.Initial`; `DesignService.PlaceItemAtCenter`; `photoCanvas.js` (`setItem`, `applyPlacement`) | `AC08_*` (`PlacementTests`, `DesignServicePlacementTests`) — **Пройдено** |
+| FR-09 Переміщення й розмір | UC-04 | AC-09 | Class `Placement.move()`, `resize()` | `PlacementGeometry.Clamp`; `DesignService.UpdatePlacement`; `photoCanvas.js` (`keepOnPhoto`) | `AC09_*` (`PlacementTests`, `DesignServicePlacementTests`) — **Пройдено** |
+| FR-10 Обрати інший предмет | UC-04 | AC-10 | State Machine (`ITEM_PLACED → SUGGESTIONS_SHOWN`) | `DesignSession.PlaceItem` (заміна розміщення без зміни фото й аналізу) | `AC10_*` (`DesignServicePlacementTests`); `PlaceOtherItem_*` (`DesignSessionTests`) — **Пройдено** |
+| FR-11 Зберегти результат | UC-04 | AC-11 | Class `ResultImage`; State `SAVED` | `photoCanvas.js` (`exportPng`); `DesignService.SaveAsync`; `FileResultStorage` (`output/`) | `AC11_*` (`FileResultStorageTests`); ручна: файл відкривається, збігається з екраном, [acceptance.md 2.5](acceptance.md#25-ac-11--збережений-png) — **Пройдено** |
+| FR-12 Каталог предметів | UC-03 | AC-12 | Class `Catalog`, `CatalogItem`, `ItemType` | `wwwroot/data/catalog.json` (24 позиції), `wwwroot/images/catalog/`; `Data/CatalogLoader`; [data.md](data.md) | `AC12_*` (`CatalogDataTests`, `CatalogLoaderTests`) — **Пройдено** |
+| FR-13 Замінити фото | UC-01; UC-02 (блокування заміни під час аналізу) | AC-13 | State Machine (переходи до `PHOTO_LOADED`) | `DesignSession.ReplacePhoto`, `BeginAnalysis` (блокування); `DesignService.IsLoadingPhoto` | `AC13_*` (`DesignSessionTests`, `PhotoUploadTests`) — **Пройдено** |
+| NFR-01 Аналіз ≤ 30 с | UC-02 (E1) | AC-14 | Activity UC-02 (рішення «не довше 30 с?») | `PixelSampler` (зменшення до 200 px); `DesignService.RunAnalyzerAsync` (тайм-аут 30 с) | `AC14_*` (`PerformanceTests`): 20 з 20 запусків ≤ 30 с, найдовший 93 мс — **Пройдено** |
+| NFR-02 Відгук ≤ 200 мс | UC-04 | AC-15 | — (проєктне рішення на етапі реалізації) | `photoCanvas.js`: під час руху — лише локальне обмеження, виклик C# один раз після відпускання | ручна, DevTools → Performance: INP 53/63 мс, найдовша задача 6,4 мс, [acceptance.md 2.6](acceptance.md#26-ac-15--відгук--200-мс) — **Пройдено** |
+| NFR-03 Сценарій ≤ 5 хв | UC-01…UC-04 | AC-16 | Use Case Diagram | сторінка `Home.razor` (кроки 1–4) | тест на 3 користувачах, [acceptance.md 2.7](acceptance.md#27-ac-16--сценарій-без-інструкції--5-хв) — **Пройдено** (3 з 3) |
+| NFR-04 Приватність | UC-02 | AC-17 | Class `Photo` (не зберігається після сесії); Activity UC-02 | `Photo.Content` лише в пам'яті сесії; на диск пише тільки `FileResultStorage` (результат) | ручна: DevTools → Network, перевірка диска, [acceptance.md 2.8](acceptance.md#28-ac-17--приватність) — **Пройдено** |
+| NFR-05 Ліцензії | UC-03 | AC-18 | Class `CatalogItem.licenseSource` | `licenseSource` у `catalog.json`; таблиця ліцензій у [data.md](data.md#16-позиції-й-ліцензії-nfr-05-ac-18) | `AC18_*` (`CatalogDataTests`, `CatalogLoaderTests`) — **Пройдено** |
+| NFR-06 Обмеження вхідного фото | UC-01 (A2) | AC-02 | [Activity UC-01](../model/activity-uc-01.md) (рішення «Фото відповідає обмеженням?»); Class `Photo.validate()` | `Photo.Validate`, `RejectionReason`; `DesignService.CheckFileSize`, визначення формату за вмістом (`Image.Identify`) | `AC02_*` (`PhotoValidationTests`, `PhotoUploadTests`); ручна: граничні фото, [acceptance.md 2.1](acceptance.md#21-ac-02--граничні-фото-nfr-06) — **Пройдено** |
 
-**Пояснення порожніх клітинок.** У NFR-02 проєктного артефакту немає: вимога стосується поведінки інтерфейсу й перевіряється лише на реалізації, тому в UML-моделі її показувати немає сенсу. Стовпець «Перевірка» заповнюється в ЛР №4.
+**FR-02** вилучено: обмеження на вхідне фото перенесено до NFR-06 (критерій AC-02 збережено).
 
-**Приклад простежування (FR-04).** Вимога «визначати рівень освітленості» → UC-02, крок 4 → AC-04 (збіг із експертною оцінкою для ≥ 5 з 6 контрольних фото) → Activity UC-02 і клас `AnalysisResult.lighting` → тест у ЛР №4.
+**Пояснення порожніх клітинок.** У NFR-02 проєктного артефакту немає: вимога стосується поведінки інтерфейсу й перевіряється лише на реалізації, тому в UML-моделі її показувати немає сенсу.
+
+**Зміни вимог після baseline** (CR-01…CR-03) зв'язків у матриці не змінюють; їх перелік і вплив — у [requirements.md](requirements.md#зміни-після-baseline).
+
+**Приклад простежування (FR-04).** Вимога «визначати рівень освітленості» → UC-02, крок 4 → AC-04 (збіг із експертною оцінкою для ≥ 5 з 6 контрольних фото) → Activity UC-02 і клас `AnalysisResult.lighting` → `LightingClassifier.Classify` (середня яскравість, пороги 55/125 після CR-02) → тести `AC04_*` і ручна перевірка: 3 з 6 до калібрування, 4 з 6 після — критерій не пройдено, зафіксовано як відоме обмеження v1.0.0.
+
+**Позначення тестів.** `AC03_*` — усі тести, назва яких починається з `AC03_`; проєкт тестів — `tests/AiDesigner.Tests`, запуск — `dotnet test`.

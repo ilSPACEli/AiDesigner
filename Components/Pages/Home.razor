@@ -1,7 +1,302 @@
-﻿@page "/"
+@page "/"
+@using AiDesigner.Models
+@using AiDesigner.Services
+@inject DesignService Design
 
-<PageTitle>Home</PageTitle>
+<PageTitle>ШІ-дизайнер інтер'єру</PageTitle>
 
-<h1>Hello, world!</h1>
+<main class="page">
+    <header>
+        <h1>ШІ-дизайнер інтер'єру</h1>
+        <p class="state">Стан сесії: <code>@Session.State</code></p>
+    </header>
 
-Welcome to your new app.
+    @if (!string.IsNullOrEmpty(_message))
+    {
+        <div class="message @(_isError ? "error" : "info")">@_message</div>
+    }
+
+    <div class="layout">
+        @* 1. Фото й полотно (UC-01, UC-04) *@
+        <section class="step canvas-panel">
+            <h2>1. Фото приміщення</h2>
+            <InputFile OnChange="OnPhotoSelectedAsync" accept="image/jpeg,image/png"
+                       aria-label="Оберіть фото приміщення"
+                       disabled="@(!CanPickPhoto)" />
+
+            @* Зйомка камерою (FR-01) — лише на телефоні/планшеті; на ПК блок прихований стилями. *@
+            <div class="camera-only">
+                <label class="btn camera-btn">
+                    Зробити фото камерою
+                    <InputFile OnChange="OnPhotoSelectedAsync" accept="image/jpeg,image/png"
+                               capture="environment"
+                               aria-label="Зробити фото камерою"
+                               disabled="@(!CanPickPhoto)" />
+                </label>
+                @* UC-01 A3: якщо камера недоступна, браузер відкриє вибір файла. *@
+                <p class="hint">Якщо камера недоступна, оберіть фото з галереї кнопкою вище.</p>
+            </div>
+
+            <PhotoCanvas @ref="_canvas" OnPlacementChanged="OnPlacementChanged" />
+            @if (Session.Photo is null)
+            {
+                <p class="hint">Оберіть фото у форматі JPEG або PNG.</p>
+            }
+            else if (Session.State == SessionState.SAVED)
+            {
+                <p class="hint">Результат збережено. Щоб продовжити редагування, оберіть інший предмет.</p>
+            }
+            else if (Session.Placement is not null)
+            {
+                <p class="hint">Перетягуйте предмет і змінюйте його розмір за кутові маркери.</p>
+            }
+        </section>
+
+        <div class="steps">
+            @* 2. Аналіз (UC-02) *@
+            <section class="step">
+                <h2>2. Аналіз</h2>
+                <button class="btn" @onclick="AnalyzeAsync" disabled="@(!CanAnalyze)">
+                    @(Session.IsAnalyzing ? "Аналіз…" : "Аналіз")
+                </button>
+
+                @if (Session.Analysis is { } analysis)
+                {
+                    <div class="palette">
+                        @foreach (var color in analysis.Colors)
+                        {
+                            <div class="swatch">
+                                <span class="chip" style="background:@color.Hex"></span>
+                                <span>@color.Hex</span>
+                                <span class="share">@color.Share.ToString("0.#") %</span>
+                            </div>
+                        }
+                    </div>
+                    <p>Освітленість: <strong>@LightingText(analysis.Lighting)</strong></p>
+                }
+            </section>
+
+            @* 3. Пропозиції (UC-03) *@
+            <section class="step">
+                <h2>3. Пропозиції</h2>
+                <button class="btn" @onclick="Suggest" disabled="@(Session.State != SessionState.ANALYZED)">
+                    Підібрати предмети
+                </button>
+
+                <ul class="suggestions">
+                    @foreach (var suggestion in Session.Suggestions)
+                    {
+                        var item = suggestion.Item;
+                        <li class="@(Session.Placement?.Item.Id == item.Id ? "selected" : null)">
+                            <img src="@item.ImageFile" alt="@item.Name" />
+                            <div class="info">
+                                <strong>@item.Name</strong>
+                                <span>@suggestion.Reason</span>
+                            </div>
+                            <button class="btn" @onclick="() => ChooseAsync(item)" disabled="@_busy">Обрати</button>
+                        </li>
+                    }
+                </ul>
+            </section>
+
+            @* 4. Збереження (UC-04) *@
+            <section class="step">
+                <h2>4. Збереження</h2>
+                <button class="btn" @onclick="SaveAsync"
+                        disabled="@(Session.State != SessionState.ITEM_PLACED || _busy)">
+                    @(_saving ? "Збереження…" : "Зберегти")
+                </button>
+                @if (Session.SavedResults.Count > 0)
+                {
+                    <ul class="saved">
+                        @foreach (var saved in Session.SavedResults)
+                        {
+                            <li>@saved.FileName</li>
+                        }
+                    </ul>
+                }
+            </section>
+        </div>
+    </div>
+</main>
+
+@code {
+    private PhotoCanvas _canvas = default!;
+    private string? _message;
+    private bool _isError;
+    private bool _busy;
+    private bool _saving;   // лише для напису на кнопці «Зберегти»
+    private bool _loadingPhoto;
+
+    private DesignSession Session => Design.Session;
+
+    private bool CanAnalyze =>
+        Session.State == SessionState.PHOTO_LOADED && !Session.IsAnalyzing && !_loadingPhoto && !Design.IsLoadingPhoto;
+
+    // Поки фото читається або показується, обидва поля вибору й «Аналіз» вимкнені (UC-01).
+    private bool CanPickPhoto => !Session.IsAnalyzing && !_busy && !_loadingPhoto && !Design.IsLoadingPhoto;
+
+    private async Task OnPhotoSelectedAsync(InputFileChangeEventArgs e)
+    {
+        if (!CanPickPhoto)
+            return;
+
+        _loadingPhoto = true;
+        try
+        {
+            var file = e.File;
+
+            // Завеликий файл відхиляємо ще до читання (NFR-06, UC-01 A2).
+            var sizeCheck = Design.CheckFileSize(file.Size);
+            if (!sizeCheck.IsSuccess)
+            {
+                ShowError(sizeCheck.Message);
+                return;
+            }
+
+            // Фото тримаємо тільки в пам'яті, на диск не пишемо (NFR-04).
+            await using var stream = file.OpenReadStream(Photo.MaxSizeBytes);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            var content = buffer.ToArray();
+
+            // Порядок «перевірка → полотно → сесія» гарантує сервіс.
+            var result = await Design.LoadPhotoAsync(file.Name, content, _canvas.SetPhotoAsync);
+            if (result.IsSuccess)
+                ShowInfo("Фото завантажено. Натисніть «Аналіз».");
+            else
+                ShowError(result.Message);
+        }
+        catch (Exception)
+        {
+            // Будь-яка непередбачена помилка — повідомлення, а не падіння сторінки.
+            ShowError("Не вдалося завантажити фото. Спробуйте ще раз або оберіть інший файл.");
+        }
+        finally
+        {
+            _loadingPhoto = false;
+        }
+    }
+
+    private async Task AnalyzeAsync()
+    {
+        _message = null;
+        var outcome = await Design.AnalyzeAsync();
+
+        if (outcome.Status == AnalysisStatus.Success)
+            ShowInfo("Аналіз завершено.");
+        else
+            ShowError(outcome.Message);
+    }
+
+    private void Suggest()
+    {
+        var result = Design.Suggest();
+        if (result.IsSuccess)
+            ShowInfo("Оберіть предмет зі списку.");
+        else
+            ShowError(result.Message);
+    }
+
+    private async Task ChooseAsync(CatalogItem item)
+    {
+        // Один вибір за раз: інакше два швидкі кліки покажуть на полотні один предмет, а в сесію запишуть інший.
+        // Поки _busy, кнопки «Обрати», «Зберегти» й вибір нового фото вимкнені.
+        if (_busy)
+            return;
+
+        _busy = true;
+        try
+        {
+            // Предмет спершу прихований: показати його треба вже на місці, а місце рахує сервіс (AC-08).
+            var size = await _canvas.SetItemAsync(item.ImageFile, hidden: true);
+            if (size is null)
+            {
+                // Браузер виконує застарілу копію photoCanvas.js: розмірів предмета немає.
+                ShowError("Не вдалося показати предмет на фото. Оновіть сторінку (Ctrl+F5) і спробуйте ще раз.");
+                return;
+            }
+
+            var start = Design.PlaceItemAtCenter(item, size.Width, size.Height);
+            await _canvas.ApplyPlacementAsync(start);
+            ShowInfo($"Обрано «{item.Name}».");
+        }
+        catch (Exception)
+        {
+            // Будь-яка непередбачена помилка — повідомлення, а не падіння сторінки (як у UC-01).
+            ShowError("Не вдалося показати предмет на фото. Спробуйте ще раз.");
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    // Користувач відпустив предмет: зберігаємо положення (FR-09) і повертаємо полотну остаточні значення.
+    private PlacementValues OnPlacementChanged(int x, int y, decimal scale, int itemWidth, int itemHeight)
+    {
+        try
+        {
+            return Design.UpdatePlacement(x, y, scale, itemWidth, itemHeight);
+        }
+        catch (InvalidOperationException) when (Session.Placement is { } placed)
+        {
+            // Стан уже інший (напр., збережено): полотно повертаємо до того, що в сесії.
+            return new PlacementValues(placed.X, placed.Y, placed.Scale);
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _busy = true;
+        _saving = true;
+        try
+        {
+            var png = await _canvas.ExportPngAsync();
+            var result = await Design.SaveAsync(png);
+            if (!result.IsSuccess)
+            {
+                ShowError(result.Message);
+                return;
+            }
+
+            ShowInfo($"Результат збережено: {Session.SavedResults[^1].FileName}");
+            await LockCanvasAsync();
+        }
+        catch (Exception)
+        {
+            // Будь-яка непередбачена помилка — повідомлення, а не падіння сторінки (як у UC-01).
+            ShowError("Не вдалося зберегти результат. Спробуйте ще раз.");
+        }
+        finally
+        {
+            _busy = false;
+            _saving = false;
+        }
+    }
+
+    // Після збереження предмет не рухається. Файл уже збережено, тому збій блокування не критичний:
+    // якщо предмет таки зрушать, UpdatePlacement у стані SAVED відхилить зміну, а полотно повернеться до сесії.
+    private async Task LockCanvasAsync()
+    {
+        try
+        {
+            await _canvas.SetLockedAsync(true);
+        }
+        catch (Exception)
+        {
+        }
+    }
+
+    private void ShowInfo(string text) => (_message, _isError) = (text, false);
+
+    private void ShowError(string text) => (_message, _isError) = (text, true);
+
+    private static string LightingText(LightingLevel level) => level switch
+    {
+        LightingLevel.DARK => "темне",
+        LightingLevel.MODERATE => "помірне",
+        LightingLevel.BRIGHT => "яскраве",
+        _ => level.ToString()
+    };
+}

@@ -1,0 +1,88 @@
+@using AiDesigner.Models
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+@* Blazor не рендерить вміст цього div: canvas усередині створює JavaScript. *@
+<div class="canvas-host" @ref="_host"></div>
+
+@code {
+    // Найбільший PNG, який приймаємо з браузера.
+    private const long MaxPngSize = 100 * 1024 * 1024;
+
+    private ElementReference _host;
+    private IJSObjectReference? _module;
+    private IJSObjectReference? _canvas;
+    private DotNetObjectReference<PhotoCanvas>? _self;
+
+    public record ItemSize(int Width, int Height);
+
+
+    [Parameter]
+    public Func<int, int, decimal, int, int, PlacementValues>? OnPlacementChanged { get; set; }
+
+    private IJSObjectReference Canvas =>
+        _canvas ?? throw new InvalidOperationException("Полотно ще не готове.");
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/photoCanvas.js");
+        _self = DotNetObjectReference.Create(this);
+        _canvas = await _module.InvokeAsync<IJSObjectReference>("create", _host, _self);
+    }
+
+    public async Task SetPhotoAsync(byte[] content)
+    {
+        using var stream = new MemoryStream(content);
+        using var streamRef = new DotNetStreamReference(stream);
+        await Canvas.InvokeVoidAsync("setPhoto", streamRef);
+    }
+
+
+    public async Task<ItemSize?> SetItemAsync(string imageUrl, bool hidden = false) =>
+        await Canvas.InvokeAsync<ItemSize?>("setItem", imageUrl, hidden);
+
+    public async Task ApplyPlacementAsync(PlacementValues placement) =>
+        await Canvas.InvokeVoidAsync("applyPlacement", placement.X, placement.Y, placement.Scale);
+
+    public async Task SetLockedAsync(bool locked) =>
+        await Canvas.InvokeVoidAsync("setLocked", locked);
+
+    public async Task<byte[]> ExportPngAsync()
+    {
+        await using var jsStream = await Canvas.InvokeAsync<IJSStreamReference>("exportPng");
+        await using var stream = await jsStream.OpenReadStreamAsync(MaxPngSize);
+        using var buffer = new MemoryStream();
+        await stream.CopyToAsync(buffer);
+        return buffer.ToArray();
+    }
+
+    [JSInvokable]
+    public PlacementValues OnItemModified(int x, int y, decimal scale, int itemWidth, int itemHeight) =>
+        OnPlacementChanged?.Invoke(x, y, scale, itemWidth, itemHeight)
+        ?? throw new InvalidOperationException("Обробника зміни положення немає.");
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_canvas is not null)
+            {
+                await _canvas.InvokeVoidAsync("dispose");
+                await _canvas.DisposeAsync();
+            }
+            if (_module is not null)
+                await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Користувач закрив вкладку — браузера вже немає, прибирати нічого.
+        }
+        finally
+        {
+            _self?.Dispose();
+        }
+    }
+}
