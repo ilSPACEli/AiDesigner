@@ -25,6 +25,8 @@ mono_crash.*
 [Dd]ebugPublic/
 [Rr]elease/
 [Rr]eleases/
+# release notes are documentation, not build output
+!docs/releases/
 x64/
 x86/
 [Ww][Ii][Nn]32/
