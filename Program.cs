@@ -1,6 +1,11 @@
 using AiDesigner.Components;
 using AiDesigner.Services;
 using AiDesigner.Services.Analysis;
+using DotNetEnv;
+
+
+// Налаштування й секрети з файла .env
+Env.NoClobber().TraversePath().Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
