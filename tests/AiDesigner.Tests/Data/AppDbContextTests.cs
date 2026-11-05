@@ -81,6 +81,7 @@ public class AppDbContextTests
         using var check = testDb.CreateContext();
         var saved = check.SavedResults.Include(r => r.CatalogItem).Single(r => r.Id == id);
         Assert.Equal(createdAt, saved.CreatedAt);
+        Assert.Equal(DateTimeKind.Utc, saved.CreatedAt.Kind);   // DateTime.Equals не порівнює Kind
         Assert.Equal(new byte[] { 1, 2, 3 }, saved.ImageData);
         Assert.Equal(new byte[] { 4, 5 }, saved.ThumbnailData);
         Assert.Equal("Тестове крісло", saved.CatalogItem!.Name);

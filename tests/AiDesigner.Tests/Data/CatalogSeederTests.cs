@@ -91,6 +91,23 @@ public class CatalogSeederTests
     }
 
     [Fact]
+    public void Insert_TableFilledConcurrently_ReturnsZeroWithoutDuplicates()
+    {
+        // Імітація одночасного старту двох екземплярів: перший уже заповнив таблицю,
+        // другий пройшов перевірку Any() раніше й тепер вставляє ті самі предмети.
+        using var testDb = new TestDb();
+        using (var first = testDb.CreateContext())
+            CatalogSeeder.Seed(first, CatalogPath);
+
+        var items = CatalogLoader.LoadFromFile(CatalogPath);
+        using (var second = testDb.CreateContext())
+            Assert.Equal(0, CatalogSeeder.Insert(second, items));
+
+        using var check = testDb.CreateContext();
+        Assert.Equal(CatalogCount, check.CatalogItems.Count());
+    }
+
+    [Fact]
     public void Seed_MissingCatalogFile_ThrowsCatalogException()
     {
         using var testDb = new TestDb();

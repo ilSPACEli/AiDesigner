@@ -53,6 +53,9 @@ public class AppDbContext : DbContext
         {
             result.HasKey(r => r.Id);
 
+            result.Property(r => r.CreatedAt)
+                .HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+
             result.Property(r => r.CatalogItemId).HasMaxLength(50).IsRequired();
             result.Property(r => r.ImageData).IsRequired();
             result.Property(r => r.ThumbnailData).IsRequired();

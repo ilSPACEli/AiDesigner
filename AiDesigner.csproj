@@ -7,6 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Тести бачать internal-члени (напр. CatalogSeeder.Insert) -->
+    <InternalsVisibleTo Include="AiDesigner.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Remove="tests/**" />
     <Content Remove="tests/**" />
     <None Remove="tests/**" />
