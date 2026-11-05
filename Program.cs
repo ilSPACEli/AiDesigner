@@ -1,6 +1,13 @@
 using AiDesigner.Components;
+using AiDesigner.Data;
 using AiDesigner.Services;
 using AiDesigner.Services.Analysis;
+using DotNetEnv;
+using Microsoft.EntityFrameworkCore;
+
+
+// Налаштування й секрети з файла .env
+Env.NoClobber().TraversePath().Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,7 +22,28 @@ builder.Services.AddSingleton<IResultStorage, FileResultStorage>();
 
 builder.Services.AddScoped<DesignService>();
 
+// БД PostgreSQL через EF Core. Рядок підключення — ConnectionStrings:Default
+var connectionString = builder.Configuration.GetConnectionString("Default");
+if (string.IsNullOrWhiteSpace(connectionString))
+    throw new InvalidOperationException(
+        "Не задано ConnectionStrings:Default. Створіть .env за зразком .env.example.");
+
+builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
+
 var app = builder.Build();
+
+// В Development застосунок сам оновлює схему БД і заповнює каталог
+if (app.Environment.IsDevelopment())
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    db.Database.Migrate();
+
+    var catalogPath = Path.Combine(app.Environment.WebRootPath, CatalogLoader.DefaultRelativePath);
+    var added = CatalogSeeder.Seed(db, catalogPath);
+    app.Logger.LogInformation("Каталог у БД: додано предметів — {Count}.", added);
+}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

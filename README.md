@@ -2,7 +2,7 @@
 
 Навчальний проєкт команди «Натурали» (ТР-41): застосунок, що за фото частини приміщення визначає колірну гаму й освітленість та пропонує предмети інтер'єру, накладаючи обраний на це фото.
 
-**Версія:** v1.0.0 · Blazor Server, .NET 8, C# 12 · без БД і зовнішніх сервісів.
+**Версія:** v1.0.0 (випущено) · у розробці — v2, спринт S1 (база даних, галерея збережених робіт) · Blazor Server, .NET 8, C# 12, EF Core 8 + PostgreSQL.
 
 ## Сценарій
 
@@ -13,21 +13,62 @@
 
 ## Запуск
 
-Потрібен [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0).
+Потрібні [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) і доступ до бази PostgreSQL (рядок підключення й роль видає координатор).
+
+1. Клонувати репозиторій і відновити локальні інструменти (`dotnet-ef` — версія з `dotnet-tools.json`):
+
+   ```
+   git clone https://github.com/ilSPACEli/AiDesigner.git
+   cd AiDesigner
+   dotnet tool restore
+   ```
+
+2. Створити `.env` із шаблону й заповнити `ConnectionStrings__Default`:
+
+   ```
+   copy .env.example .env        # Windows
+   cp .env.example .env          # Linux / macOS
+   ```
+
+   `.env` містить пароль і **не комітиться** (є в `.gitignore`). Змінні, задані в системі, мають пріоритет над `.env`.
+
+3. Запустити:
+
+   ```
+   dotnet run
+   ```
+
+   У середовищі `Development` застосунок під час старту сам застосовує нові міграції й заповнює каталог із `catalog.json` (лише якщо таблиця порожня). Відкрити адресу, яку покаже консоль (напр., `http://localhost:5245`).
+
+### База даних
+
+| БД | Для чого | Роль |
+|----|----------|------|
+| `aidesigner_dev` | спільна для розробки, відповідає гілці `dev` | `app_dev` |
+| `aidesigner_sandbox` | задачі з міграціями до мержу | окрема роль на учасника |
+| `aidesigner_prod` | демонстрація й захист, відповідає `main` | лише координатор |
+
+Схема БД — міграції в `Data/Migrations/`:
 
 ```
-git clone https://github.com/ilSPACEli/AiDesigner.git
-cd AiDesigner
-dotnet run
+dotnet ef migrations add <Назва> -o Data/Migrations   # створити міграцію
+dotnet ef database update                             # застосувати до БД із .env
+dotnet ef migrations list                             # які міграції є і які застосовано
 ```
 
-Відкрити адресу, яку покаже консоль (напр., `http://localhost:5245`).
+- Міграції до `aidesigner_dev` застосовуються від ролі `app_dev`, щоб таблиці належали їй.
+- У спринті S1 міграції створює лише автор задачі #42; зміни схеми в інших задачах — через нього.
+- До `aidesigner_prod` — лише вручну після мержу в `main`; у `Production` застосунок міграцій не запускає.
 
-Тести:
+Опис таблиць — [docs/data.md](docs/data.md#3-база-даних-v2-s1).
+
+### Тести
 
 ```
 dotnet test
 ```
+
+Справжня БД тестам не потрібна: тести бази даних працюють на SQLite у пам'яті (`tests/AiDesigner.Tests/Data/TestDb.cs`), тож проходять і в CI.
 
 Збірка для розгортання: `dotnet publish AiDesigner.csproj -c Release -o publish`, запуск — `publish/AiDesigner.exe` (Windows) або `dotnet publish/AiDesigner.dll`.
 
@@ -39,10 +80,10 @@ dotnet test
 | `Models/` | предметні класи за діаграмою класів; `DesignSession` — State Machine сесії |
 | `Services/` | `DesignService` (оркестратор), інтерфейси `IPhotoAnalyzer`, `ICatalog`, `IResultStorage` та реалізації |
 | `Services/Analysis/` | аналіз фото (UC-02): k-means, освітленість |
-| `Data/` | `CatalogLoader` — читання й перевірка каталогу |
+| `Data/` | `CatalogLoader` — читання й перевірка каталогу; `AppDbContext`, `CatalogSeeder`, міграції `Migrations/` |
 | `Components/` | сторінка `Home.razor`, полотно `PhotoCanvas.razor` |
 | `wwwroot/` | `js/photoCanvas.js` (Fabric.js), каталог `data/catalog.json`, `images/catalog/` |
-| `tests/AiDesigner.Tests/` | xUnit-тести (379) |
+| `tests/AiDesigner.Tests/` | xUnit-тести (391) |
 | `docs/`, `model/` | документація й UML-моделі |
 
 ## Команда
@@ -62,6 +103,7 @@ dotnet test
 - [Реалізація](docs/implementation.md) · [Внутрішній API](docs/api.md) · [Дані й каталог](docs/data.md)
 - [Матриця простежуваності (RTM)](docs/traceability.md)
 - [Приймальні перевірки](docs/acceptance.md)
+- [Спринт S1](docs/sprints/s1.md) — план і підсумок
 - [План реалізації](docs/implementation-plan.md)
 - Редаговані джерела діаграм: [`model/`](model/)
 
