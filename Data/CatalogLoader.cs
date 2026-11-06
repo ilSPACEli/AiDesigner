@@ -74,7 +74,14 @@ public static class CatalogLoader
 
         for (var i = 0; i < items.Count; i++)
         {
-            var item = items[i];
+            // У JSON може трапитися null замість об'єкта ([null, {...}]) — це помилка даних, а не збій програми.
+            CatalogItem? item = items[i];
+            if (item is null)
+            {
+                problems.Add($"позиція №{i + 1}: порожній запис (null).");
+                continue;
+            }
+
             var label = string.IsNullOrWhiteSpace(item.Id) ? $"позиція №{i + 1}" : $"«{item.Id}»";
 
             if (string.IsNullOrWhiteSpace(item.Id))

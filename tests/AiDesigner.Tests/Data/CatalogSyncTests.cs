@@ -186,6 +186,43 @@ public class CatalogSyncTests
         Assert.Equal(CatalogCount, check.CatalogItems.Count());
     }
 
+    [Fact]
+    public void AC25_CatalogWithNullEntry_DoesNotStopStartup_AndIsLoggedAsError()
+    {
+        // null замість об'єкта в catalog.json — теж зламаний каталог: CatalogException, а не збій старту.
+        using var testDb = new TestDb();
+        var logger = new ListLogger();
+        var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"catalog-{Guid.NewGuid():N}.json");
+        File.WriteAllText(path, "[null]");
+        try
+        {
+            using (var db = testDb.CreateContext())
+                DatabaseInitializer.Initialize(db, path, applyMigrations: false, logger);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+
+        Assert.Contains(logger.Entries, e => e.Level == LogLevel.Error);
+    }
+
+    [Fact]
+    public void Sync_OtherSaveError_IsNotRetried()
+    {
+        // Помилка запису, не пов'язана з одночасним стартом (у БД не з'явилося наших предметів),
+        // має дійти до виклику одразу, без повторної спроби.
+        using var testDb = new TestDb();
+        var failing = new FailingSave();
+
+        using (var db = testDb.CreateContext(failing))
+            Assert.Throws<DbUpdateException>(() => CatalogSeeder.Sync(db, CatalogPath));
+
+        Assert.Equal(1, failing.Calls);
+        using var check = testDb.CreateContext();
+        Assert.Empty(check.CatalogItems);
+    }
+
     // ---------- допоміжне ----------
 
     private static CatalogItem Copy(CatalogItem item, string? mainColor = null,
@@ -236,6 +273,18 @@ public class CatalogSyncTests
                 other.SaveChanges();
             }
             return result;
+        }
+    }
+
+    // Кожне збереження завершується помилкою запису (імітація, напр., порушення обмеження БД).
+    private sealed class FailingSave : SaveChangesInterceptor
+    {
+        public int Calls { get; private set; }
+
+        public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
+        {
+            Calls++;
+            throw new DbUpdateException("Імітована помилка запису.");
         }
     }
 

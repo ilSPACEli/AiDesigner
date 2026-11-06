@@ -14,19 +14,26 @@ public static class CatalogSeeder
 
         var items = CatalogLoader.LoadFromFile(catalogPath);
 
+        var pendingIds = new List<string>();
         try
         {
-            return Apply(db, items);
+            return Apply(db, items, pendingIds);
         }
         catch (DbUpdateException)
         {
-
             db.ChangeTracker.Clear();
-            return Apply(db, items);
+
+            // Повторюємо лише конфлікт одночасного старту: у БД з'явилися предмети, які ми намагалися додати
+            // (їх устиг вставити інший екземпляр). Будь-яка інша помилка запису — пробрасуємо без повтору.
+            if (pendingIds.Count == 0 || !db.CatalogItems.Any(i => pendingIds.Contains(i.Id)))
+                throw;
+
+            return Apply(db, items, new List<string>());
         }
     }
 
-    private static CatalogSyncResult Apply(AppDbContext db, IReadOnlyList<CatalogItem> items)
+    // pendingIds — id предметів, які додаються (щоб розпізнати конфлікт одночасного старту).
+    private static CatalogSyncResult Apply(AppDbContext db, IReadOnlyList<CatalogItem> items, List<string> pendingIds)
     {
         var stored = db.CatalogItems.ToDictionary(i => i.Id);
         int added = 0, updated = 0;
@@ -43,6 +50,7 @@ public static class CatalogSeeder
             else
             {
                 db.CatalogItems.Add(item);
+                pendingIds.Add(item.Id);
                 added++;
             }
         }
