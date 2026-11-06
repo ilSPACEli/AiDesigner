@@ -5,38 +5,52 @@ namespace AiDesigner.Data;
 
 public sealed record CatalogSyncResult(int Added, int Updated, IReadOnlyList<string> MissingInJson);
 
+
 public static class CatalogSeeder
 {
-    // Повертає кількість доданих предметів: 0, якщо таблиця вже заповнена
-    public static CatalogSyncResult Sync(AppDbContext db, string catalogPath) =>
-        new(Seed(db, catalogPath), 0, Array.Empty<string>());
-
-    public static int Seed(AppDbContext db, string catalogPath)
+    public static CatalogSyncResult Sync(AppDbContext db, string catalogPath)
     {
         ArgumentNullException.ThrowIfNull(db);
 
-        if (db.CatalogItems.Any())
-            return 0;
-
         var items = CatalogLoader.LoadFromFile(catalogPath);
-        return Insert(db, items);
-    }
 
-    // Вставка всіх предметів однією транзакцією (SaveChanges): або всі, або жоден.
-    internal static int Insert(AppDbContext db, IReadOnlyList<CatalogItem> items)
-    {
-        db.CatalogItems.AddRange(items);
         try
         {
-            db.SaveChanges();
-            return items.Count;
+            return Apply(db, items);
         }
         catch (DbUpdateException)
         {
+
             db.ChangeTracker.Clear();
-            if (db.CatalogItems.Any())
-                return 0;
-            throw;
+            return Apply(db, items);
         }
+    }
+
+    private static CatalogSyncResult Apply(AppDbContext db, IReadOnlyList<CatalogItem> items)
+    {
+        var stored = db.CatalogItems.ToDictionary(i => i.Id);
+        int added = 0, updated = 0;
+
+        foreach (var item in items)
+        {
+            if (stored.Remove(item.Id, out var existing))
+            {
+                var entry = db.Entry(existing);
+                entry.CurrentValues.SetValues(item);
+                if (entry.State == EntityState.Modified)
+                    updated++;
+            }
+            else
+            {
+                db.CatalogItems.Add(item);
+                added++;
+            }
+        }
+
+        if (added + updated > 0)
+            db.SaveChanges();
+
+        var missingInJson = stored.Keys.OrderBy(id => id, StringComparer.Ordinal).ToList();
+        return new CatalogSyncResult(added, updated, missingInJson);
     }
 }
