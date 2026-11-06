@@ -3,12 +3,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AiDesigner.Data;
 
-// Початкове заповнення таблиці CatalogItems із wwwroot/data/catalog.json
-// Працює лише з порожньою таблицею, тож повторний запуск застосунку нічого не дублює
+public sealed record CatalogSyncResult(int Added, int Updated, IReadOnlyList<string> MissingInJson);
+
 public static class CatalogSeeder
 {
     // Повертає кількість доданих предметів: 0, якщо таблиця вже заповнена
-    // Якщо catalog.json відсутній або містить помилки — CatalogException від CatalogLoader.
+    public static CatalogSyncResult Sync(AppDbContext db, string catalogPath) =>
+        new(Seed(db, catalogPath), 0, Array.Empty<string>());
+
     public static int Seed(AppDbContext db, string catalogPath)
     {
         ArgumentNullException.ThrowIfNull(db);

@@ -32,17 +32,14 @@ builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connect
 
 var app = builder.Build();
 
-// В Development застосунок сам оновлює схему БД і заповнює каталог
-if (app.Environment.IsDevelopment())
+// Підготовка БД під час старту: міграції — лише в Development, каталог — див. DatabaseInitializer.
+using (var scope = app.Services.CreateScope())
 {
-    using var scope = app.Services.CreateScope();
+    // AppDbContext — Scoped, а запиту ще немає, тому створюємо область вручну.
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-    db.Database.Migrate();
-
     var catalogPath = Path.Combine(app.Environment.WebRootPath, CatalogLoader.DefaultRelativePath);
-    var added = CatalogSeeder.Seed(db, catalogPath);
-    app.Logger.LogInformation("Каталог у БД: додано предметів — {Count}.", added);
+
+    DatabaseInitializer.Initialize(db, catalogPath, applyMigrations: app.Environment.IsDevelopment(), app.Logger);
 }
 
 // Configure the HTTP request pipeline.
