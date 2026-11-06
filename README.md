@@ -38,7 +38,7 @@
    dotnet run
    ```
 
-   У середовищі `Development` застосунок під час старту сам застосовує нові міграції й заповнює каталог із `catalog.json` (лише якщо таблиця порожня). Відкрити адресу, яку покаже консоль (напр., `http://localhost:5245`).
+   Під час старту застосунок синхронізує таблицю `CatalogItems` із `catalog.json` (в усіх середовищах), а в `Development` ще й сам застосовує нові міграції. Відкрити адресу, яку покаже консоль (напр., `http://localhost:5245`).
 
 ### База даних
 
@@ -59,6 +59,8 @@ dotnet ef migrations list                             # які міграції 
 - Міграції до `aidesigner_dev` застосовуються від ролі `app_dev`, щоб таблиці належали їй.
 - У спринті S1 міграції створює лише автор задачі #42; зміни схеми в інших задачах — через нього.
 - До `aidesigner_prod` — лише вручну після мержу в `main`; у `Production` застосунок міграцій не запускає.
+
+Каталог предметів змінюється **лише** через `wwwroot/data/catalog.json` (+ PNG у `wwwroot/images/catalog/`) і PR: після мержу БД оновиться сама під час наступного старту; ручні зміни в таблиці `CatalogItems` перезапишуться. Як додати предмет — [docs/data.md](docs/data.md#17-як-додати-предмет).
 
 Опис таблиць — [docs/data.md](docs/data.md#3-база-даних-v2-s1).
 
@@ -83,7 +85,7 @@ dotnet test
 | `Data/` | `CatalogLoader` — читання й перевірка каталогу; `AppDbContext`, `CatalogSeeder`, міграції `Migrations/` |
 | `Components/` | сторінка `Home.razor`, полотно `PhotoCanvas.razor` |
 | `wwwroot/` | `js/photoCanvas.js` (Fabric.js), каталог `data/catalog.json`, `images/catalog/` |
-| `tests/AiDesigner.Tests/` | xUnit-тести (391) |
+| `tests/AiDesigner.Tests/` | xUnit-тести (397) |
 | `docs/`, `model/` | документація й UML-моделі |
 
 ## Команда
