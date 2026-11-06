@@ -3,7 +3,7 @@ using AiDesigner.Models;
 
 namespace AiDesigner.Tests.Data;
 
-// Заповнення таблиці CatalogItems зі справжнього catalog.json
+// Деталі синхронізації каталогу, які не покривають сценарії AC-25 у CatalogSyncTests.
 public class CatalogSeederTests
 {
     private static readonly string CatalogPath =
@@ -12,34 +12,7 @@ public class CatalogSeederTests
     private static readonly int CatalogCount = CatalogLoader.LoadFromFile(CatalogPath).Count;
 
     [Fact]
-    public void Seed_EmptyDatabase_AddsWholeCatalog()
-    {
-        using var testDb = new TestDb();
-
-        using (var db = testDb.CreateContext())
-            Assert.Equal(CatalogCount, CatalogSeeder.Seed(db, CatalogPath));
-
-        using var check = testDb.CreateContext();
-        Assert.Equal(CatalogCount, check.CatalogItems.Count());
-    }
-
-    [Fact]
-    public void Seed_SecondRun_DoesNotDuplicate()
-    {
-        using var testDb = new TestDb();
-
-        using (var db = testDb.CreateContext())
-            CatalogSeeder.Seed(db, CatalogPath);
-
-        using (var db = testDb.CreateContext())
-            Assert.Equal(0, CatalogSeeder.Seed(db, CatalogPath));
-
-        using var check = testDb.CreateContext();
-        Assert.Equal(CatalogCount, check.CatalogItems.Count());
-    }
-
-    [Fact]
-    public void Seed_TableNotEmpty_KeepsExistingItemsAndAddsNothing()
+    public void Sync_TableWithForeignItem_KeepsItAndAddsCatalog()
     {
         using var testDb = new TestDb();
 
@@ -58,19 +31,23 @@ public class CatalogSeederTests
             db.SaveChanges();
         }
 
+        CatalogSyncResult result;
         using (var db = testDb.CreateContext())
-            Assert.Equal(0, CatalogSeeder.Seed(db, CatalogPath));
+            result = CatalogSeeder.Sync(db, CatalogPath);
+
+        Assert.Equal(CatalogCount, result.Added);
+        Assert.Equal(new[] { "own-01" }, result.MissingInJson);
 
         using var check = testDb.CreateContext();
-        Assert.Equal("own-01", Assert.Single(check.CatalogItems).Id);
+        Assert.Equal(CatalogCount + 1, check.CatalogItems.Count());
     }
 
     [Fact]
-    public void Seed_SavesItemsExactlyAsInCatalogJson()
+    public void Sync_SavesItemsExactlyAsInCatalogJson()
     {
         using var testDb = new TestDb();
         using (var db = testDb.CreateContext())
-            CatalogSeeder.Seed(db, CatalogPath);
+            CatalogSeeder.Sync(db, CatalogPath);
 
         var expected = CatalogLoader.LoadFromFile(CatalogPath).OrderBy(i => i.Id).ToList();
 
@@ -91,28 +68,14 @@ public class CatalogSeederTests
     }
 
     [Fact]
-    public void Insert_TableFilledConcurrently_ReturnsZeroWithoutDuplicates()
+    public void Sync_MissingCatalogFile_ThrowsCatalogException_AndChangesNothing()
     {
-        // Імітація одночасного старту двох екземплярів: перший уже заповнив таблицю,
-        // другий пройшов перевірку Any() раніше й тепер вставляє ті самі предмети.
         using var testDb = new TestDb();
-        using (var first = testDb.CreateContext())
-            CatalogSeeder.Seed(first, CatalogPath);
-
-        var items = CatalogLoader.LoadFromFile(CatalogPath);
-        using (var second = testDb.CreateContext())
-            Assert.Equal(0, CatalogSeeder.Insert(second, items));
+        using (var db = testDb.CreateContext())
+            Assert.Throws<CatalogException>(() =>
+                CatalogSeeder.Sync(db, Path.Combine(RepoPaths.Root, "no-such-catalog.json")));
 
         using var check = testDb.CreateContext();
-        Assert.Equal(CatalogCount, check.CatalogItems.Count());
-    }
-
-    [Fact]
-    public void Seed_MissingCatalogFile_ThrowsCatalogException()
-    {
-        using var testDb = new TestDb();
-        using var db = testDb.CreateContext();
-
-        Assert.Throws<CatalogException>(() => CatalogSeeder.Seed(db, Path.Combine(RepoPaths.Root, "no-such-catalog.json")));
+        Assert.Empty(check.CatalogItems);
     }
 }

@@ -3,38 +3,62 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AiDesigner.Data;
 
-// Початкове заповнення таблиці CatalogItems із wwwroot/data/catalog.json
-// Працює лише з порожньою таблицею, тож повторний запуск застосунку нічого не дублює
+public sealed record CatalogSyncResult(int Added, int Updated, IReadOnlyList<string> MissingInJson);
+
+
 public static class CatalogSeeder
 {
-    // Повертає кількість доданих предметів: 0, якщо таблиця вже заповнена
-    // Якщо catalog.json відсутній або містить помилки — CatalogException від CatalogLoader.
-    public static int Seed(AppDbContext db, string catalogPath)
+    public static CatalogSyncResult Sync(AppDbContext db, string catalogPath)
     {
         ArgumentNullException.ThrowIfNull(db);
 
-        if (db.CatalogItems.Any())
-            return 0;
-
         var items = CatalogLoader.LoadFromFile(catalogPath);
-        return Insert(db, items);
-    }
 
-    // Вставка всіх предметів однією транзакцією (SaveChanges): або всі, або жоден.
-    internal static int Insert(AppDbContext db, IReadOnlyList<CatalogItem> items)
-    {
-        db.CatalogItems.AddRange(items);
+        var pendingIds = new List<string>();
         try
         {
-            db.SaveChanges();
-            return items.Count;
+            return Apply(db, items, pendingIds);
         }
         catch (DbUpdateException)
         {
             db.ChangeTracker.Clear();
-            if (db.CatalogItems.Any())
-                return 0;
-            throw;
+
+            // Повторюємо лише конфлікт одночасного старту: у БД з'явилися предмети, які ми намагалися додати
+            // (їх устиг вставити інший екземпляр). Будь-яка інша помилка запису — пробрасуємо без повтору.
+            if (pendingIds.Count == 0 || !db.CatalogItems.Any(i => pendingIds.Contains(i.Id)))
+                throw;
+
+            return Apply(db, items, new List<string>());
         }
+    }
+
+    // pendingIds — id предметів, які додаються (щоб розпізнати конфлікт одночасного старту).
+    private static CatalogSyncResult Apply(AppDbContext db, IReadOnlyList<CatalogItem> items, List<string> pendingIds)
+    {
+        var stored = db.CatalogItems.ToDictionary(i => i.Id);
+        int added = 0, updated = 0;
+
+        foreach (var item in items)
+        {
+            if (stored.Remove(item.Id, out var existing))
+            {
+                var entry = db.Entry(existing);
+                entry.CurrentValues.SetValues(item);
+                if (entry.State == EntityState.Modified)
+                    updated++;
+            }
+            else
+            {
+                db.CatalogItems.Add(item);
+                pendingIds.Add(item.Id);
+                added++;
+            }
+        }
+
+        if (added + updated > 0)
+            db.SaveChanges();
+
+        var missingInJson = stored.Keys.OrderBy(id => id, StringComparer.Ordinal).ToList();
+        return new CatalogSyncResult(added, updated, missingInJson);
     }
 }

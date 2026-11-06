@@ -67,6 +67,24 @@ public class CatalogLoaderTests
         Assert.Throws<CatalogException>(() => CatalogLoader.Parse("null"));
     }
 
+    [Theory]
+    [InlineData("[null]")]
+    [InlineData("[null, null]")]
+    public void Parse_NullEntry_ThrowsCatalogException(string json)
+    {
+        var ex = Assert.Throws<CatalogException>(() => CatalogLoader.Parse(json));
+        Assert.Contains("позиція №1: порожній запис (null)", ex.Message);
+    }
+
+    [Fact]
+    public void Parse_NullEntryAmongValidItems_ReportsItsPosition()
+    {
+        var json = "[" + JsonSerializer.Serialize(Item("sofa-01")) + ", null]";
+
+        var ex = Assert.Throws<CatalogException>(() => CatalogLoader.Parse(json));
+        Assert.Contains("позиція №2: порожній запис (null)", ex.Message);
+    }
+
     [Fact]
     public void LoadFromFile_MissingFile_ThrowsCatalogException()
     {
