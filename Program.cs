@@ -1,7 +1,11 @@
+using AiDesigner.Api;
+using AiDesigner.Api.Endpoints;
 using AiDesigner.Components;
 using AiDesigner.Data;
+using AiDesigner.Repositories;
 using AiDesigner.Services;
 using AiDesigner.Services.Analysis;
+using AiDesigner.Services.Results;
 using DotNetEnv;
 using Microsoft.EntityFrameworkCore;
 
@@ -29,6 +33,13 @@ if (string.IsNullOrWhiteSpace(connectionString))
         "Не задано ConnectionStrings:Default. Створіть .env за зразком .env.example.");
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
+
+// Галерея (US-1): налаштування Gallery:*, репозиторій, сервіс, обмеження частоти збережень
+builder.Services.AddSingleton(
+    builder.Configuration.GetSection(GalleryOptions.SectionName).Get<GalleryOptions>() ?? new GalleryOptions());
+builder.Services.AddScoped<IResultRepository, EfResultRepository>();
+builder.Services.AddScoped<ResultService>();
+builder.Services.AddGalleryRateLimiting();
 
 var app = builder.Build();
 
@@ -61,7 +72,14 @@ app.UseStaticFiles(new StaticFileOptions
 });
 app.UseAntiforgery();
 
+app.UseRateLimiter();
+
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
+app.MapResultEndpoints();
+
 app.Run();
+
+// Потрібно, щоб WebApplicationFactory<Program> у тестах бачив клас Program
+public partial class Program { }
