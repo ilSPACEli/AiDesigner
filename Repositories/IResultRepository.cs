@@ -2,11 +2,6 @@ using AiDesigner.Models;
 
 namespace AiDesigner.Repositories;
 
-/// <summary>
-/// Сховище збережених робіт галереї. Дві реалізації: у пам'яті (для тестів) і EF (PostgreSQL).
-/// Обидві мають поводитися однаково: це перевіряють спільні контрактні тести.
-/// Очікувані ситуації («немає такої роботи») — це результат (<c>null</c>, <c>false</c>), а не виняток.
-/// </summary>
 public interface IResultRepository
 {
 
