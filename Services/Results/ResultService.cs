@@ -19,6 +19,9 @@ public class ResultService
     public const string NotPngMessage = "Дані не є зображенням PNG або файл пошкоджений.";
     public const string SaveFailedMessage = "Не вдалося зберегти зображення. Спробуйте ще раз.";
 
+    public static string TooLargeMessage(int maxImageBytes) =>
+        $"Максимальний розмір — {maxImageBytes / 1048576.0:0.#} МБ.";
+
     private readonly IResultRepository _repository;
     private readonly ICatalog _catalog;
     private readonly GalleryOptions _options;
@@ -36,7 +39,7 @@ public class ResultService
         _repository = repository;
         _catalog = catalog;
         _options = options;
-        _retention = new GalleryRetentionPolicy(options.MaxItems);   
+        _retention = new GalleryRetentionPolicy(options.MaxItems);   // сам перевірить, що ліміт ≥ 1
         _logger = logger;
     }
 
@@ -46,7 +49,7 @@ public class ResultService
         ArgumentNullException.ThrowIfNull(pngBytes);
 
         if (pngBytes.Length > _options.MaxImageBytes)
-            return SaveOutcome.TooLarge($"Максимальний розмір — {_options.MaxImageBytes / 1048576.0:0.#} МБ.");
+            return SaveOutcome.TooLarge(TooLargeMessage(_options.MaxImageBytes));
 
         if (string.IsNullOrWhiteSpace(catalogItemId))
             return SaveOutcome.BadRequest(NoItemMessage);
@@ -61,6 +64,8 @@ public class ResultService
             if (prepared is null)
                 return SaveOutcome.BadRequest(NotPngMessage);
 
+            // R7: скільки найстаріших витіснити, щоб вмістилася нова. Саме витіснення й запис
+            // репозиторій виконує однією транзакцією: збій запису не втрачає старих робіт.
             var count = await _repository.CountAsync(cancellationToken);
             var evict = _retention.CountToEvict(count);
 
@@ -68,6 +73,7 @@ public class ResultService
             {
                 CreatedAt = DateTime.UtcNow,
                 CatalogItemId = item.Id,
+                CatalogItem = item,   // EF його ігнорує (пише лише ключ), а сховище в пам'яті збереже для списку
                 ImageData = prepared.Image,
                 ThumbnailData = prepared.Thumbnail
             };
@@ -99,6 +105,7 @@ public class ResultService
 
     private sealed record PreparedImages(byte[] Image, byte[] Thumbnail);
 
+    // null — це не PNG (або пошкоджений): відмова за вмістом, а не збій.
     private static async Task<PreparedImages?> PrepareAsync(byte[] pngBytes, CancellationToken cancellationToken)
     {
         if (!HasPngSignature(pngBytes))
@@ -160,6 +167,7 @@ public class ResultService
 
     private static bool HasPngSignature(byte[] bytes) =>
         bytes.Length >= PngSignature.Length && bytes.AsSpan(0, PngSignature.Length).SequenceEqual(PngSignature);
+
 
     private static SavedResult WithItem(SavedResult saved, CatalogItem item) => new()
     {

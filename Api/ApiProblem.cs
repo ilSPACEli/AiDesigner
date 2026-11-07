@@ -12,4 +12,7 @@ public static class ApiProblem
         Title = title,
         Detail = detail
     };
+
+    public static IResult Result(int status, string title, string detail) =>
+        Results.Json(Create(status, title, detail), contentType: ContentType, statusCode: status);
 }
