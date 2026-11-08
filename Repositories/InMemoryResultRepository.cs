@@ -58,6 +58,22 @@ public sealed class InMemoryResultRepository : IResultRepository
             return Task.FromResult(_items.FirstOrDefault(r => r.Id == id));
     }
 
+    public Task<byte[]?> GetImageAsync(int id, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        lock (_sync)
+            return Task.FromResult(_items.FirstOrDefault(r => r.Id == id)?.ImageData);
+    }
+
+    public Task<byte[]?> GetThumbnailAsync(int id, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        lock (_sync)
+            return Task.FromResult(_items.FirstOrDefault(r => r.Id == id)?.ThumbnailData);
+    }
+
     public Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();

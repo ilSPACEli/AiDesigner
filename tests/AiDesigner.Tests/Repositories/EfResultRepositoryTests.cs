@@ -2,7 +2,9 @@ using AiDesigner.Data;
 using AiDesigner.Models;
 using AiDesigner.Repositories;
 using AiDesigner.Tests.Data;
+using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace AiDesigner.Tests.Repositories;
 
@@ -143,5 +145,66 @@ public sealed class EfResultRepositoryTests : ResultRepositoryContractTests, IDi
         Assert.Equal(ItemName, loaded!.CatalogItem?.Name);
         Assert.Equal(new byte[] { 5, 2 }, loaded.ImageData);
         Assert.Equal(new byte[] { 5, 3 }, loaded.ThumbnailData);
+    }
+
+    // ---------- Один стовпець: картинки не тягнуть зайвого з бази ----------
+
+    [Fact]
+    public async Task Ef_GetThumbnail_SelectsOnlyThumbnailColumn()
+    {
+        // Сторінка галереї запитує до ста мініатюр: кожна не повинна тягнути повний PNG (до 5 МБ).
+        var saved = await CreateRepository().AddAsync(NewResult(T(0), marker: 4));
+        var recorder = new CommandTextRecorder();
+        var repo = new EfResultRepository(CreateContext(recorder));
+
+        var thumbnail = await repo.GetThumbnailAsync(saved.Id);
+
+        Assert.Equal(new byte[] { 4, 3 }, thumbnail);
+        var sql = recorder.Commands.Last();
+        Assert.Contains("ThumbnailData", sql);
+        Assert.DoesNotContain("ImageData", sql);
+    }
+
+    [Fact]
+    public async Task Ef_GetImage_SelectsOnlyImageColumn()
+    {
+        var saved = await CreateRepository().AddAsync(NewResult(T(0), marker: 4));
+        var recorder = new CommandTextRecorder();
+        var repo = new EfResultRepository(CreateContext(recorder));
+
+        var image = await repo.GetImageAsync(saved.Id);
+
+        Assert.Equal(new byte[] { 4, 2 }, image);
+        var sql = recorder.Commands.Last();
+        Assert.Contains("ImageData", sql);
+        Assert.DoesNotContain("ThumbnailData", sql);
+    }
+
+    // Контекст з перехоплювачем, який запам'ятовує текст SQL-запитів
+    private AppDbContext CreateContext(params IInterceptor[] interceptors)
+    {
+        var context = _testDb.CreateContext(interceptors);
+        _contexts.Add(context);
+        return context;
+    }
+
+    private sealed class CommandTextRecorder : DbCommandInterceptor
+    {
+        public List<string> Commands { get; } = new();
+
+        public override InterceptionResult<DbDataReader> ReaderExecuting(
+            DbCommand command, CommandEventData eventData, InterceptionResult<DbDataReader> result)
+        {
+            Commands.Add(command.CommandText);
+            return result;
+        }
+
+        public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
+            DbCommand command, CommandEventData eventData, InterceptionResult<DbDataReader> result,
+            CancellationToken cancellationToken = default)
+        {
+            Commands.Add(command.CommandText);
+            return new ValueTask<InterceptionResult<DbDataReader>>(result);
+        }
     }
 }

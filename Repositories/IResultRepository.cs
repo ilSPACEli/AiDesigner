@@ -11,6 +11,10 @@ public interface IResultRepository
 
     Task<SavedResult?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
 
+    Task<byte[]?> GetImageAsync(int id, CancellationToken cancellationToken = default);
+
+    Task<byte[]?> GetThumbnailAsync(int id, CancellationToken cancellationToken = default);
+
     Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default);
 
     Task<int> CountAsync(CancellationToken cancellationToken = default);

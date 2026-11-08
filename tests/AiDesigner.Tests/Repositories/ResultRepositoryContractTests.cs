@@ -252,4 +252,48 @@ public abstract class ResultRepositoryContractTests
 
         Assert.Equal(1, await repo.CountAsync());
     }
+
+    // ---------- Окремі стовпці: лише PNG / лише мініатюра ----------
+
+    [Fact]
+    public async Task Repository_GetImage_ReturnsStoredPng()
+    {
+        var repo = CreateRepository();
+        var saved = await repo.AddAsync(NewResult(T(0), marker: 7));
+
+        var image = await repo.GetImageAsync(saved.Id);
+
+        Assert.Equal(new byte[] { 7, 2 }, image);
+    }
+
+    [Fact]
+    public async Task Repository_GetThumbnail_ReturnsStoredThumbnail()
+    {
+        var repo = CreateRepository();
+        var saved = await repo.AddAsync(NewResult(T(0), marker: 7));
+
+        var thumbnail = await repo.GetThumbnailAsync(saved.Id);
+
+        Assert.Equal(new byte[] { 7, 3 }, thumbnail);
+    }
+
+    [Fact]
+    public async Task Repository_GetImageAndThumbnail_Unknown_ReturnNull()
+    {
+        var repo = CreateRepository();
+
+        Assert.Null(await repo.GetImageAsync(999));
+        Assert.Null(await repo.GetThumbnailAsync(999));
+    }
+
+    [Fact]
+    public async Task AC22_GetImageAndThumbnail_AfterDelete_ReturnNull()
+    {
+        var repo = CreateRepository();
+        var saved = await repo.AddAsync(NewResult(T(0)));
+        await repo.DeleteAsync(saved.Id);
+
+        Assert.Null(await repo.GetImageAsync(saved.Id));
+        Assert.Null(await repo.GetThumbnailAsync(saved.Id));
+    }
 }

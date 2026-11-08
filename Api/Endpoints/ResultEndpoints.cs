@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.RateLimiting;
 
 namespace AiDesigner.Api.Endpoints;
 
-
 public static class ResultEndpoints
 {
     public const string BadRequestTitle = "Некоректний запит";
@@ -18,8 +17,6 @@ public static class ResultEndpoints
 
         group.MapPost("/", SaveAsync)
             .RequireRateLimiting(GalleryRateLimiting.SaveResultPolicy)
-            // У застосунку є UseAntiforgery() для Blazor; цей ендпоінт — для API-клієнтів (Postman, JMeter,
-            // HttpClient) без форм і cookie, тож токен захисту від CSRF тут не застосовується.
             .DisableAntiforgery();
 
         group.MapGet("/", GetAllAsync);
@@ -65,7 +62,7 @@ public static class ResultEndpoints
 
         return outcome.Status switch
         {
-            SaveStatus.Saved => Results.Created($"/api/results/{outcome.Result!.Id}", ResultDto.From(outcome.Result)),
+            SaveStatus.Saved => Created(ResultDto.From(outcome.Result!)),
             SaveStatus.BadRequest => ApiProblem.Result(StatusCodes.Status400BadRequest, BadRequestTitle, outcome.Message),
             SaveStatus.TooLarge => ApiProblem.Result(StatusCodes.Status413PayloadTooLarge, TooLargeTitle, outcome.Message),
             SaveStatus.Failed => ApiProblem.Result(StatusCodes.Status500InternalServerError, SaveFailedTitle, outcome.Message),
@@ -80,26 +77,28 @@ public static class ResultEndpoints
         return Results.Ok(results.Select(ResultDto.From).ToList());
     }
 
-    // GET /api/results/{id}/image: PNG
+    // GET /api/results/{id}/image: PNG. З бази читається лише стовпець ImageData
     private static async Task<IResult> GetImageAsync(int id, ResultService service, CancellationToken cancellationToken)
     {
-        var result = await service.GetByIdAsync(id, cancellationToken);
-        return result is null ? NotFound(id) : Results.File(result.ImageData, "image/png");
+        var image = await service.GetImageAsync(id, cancellationToken);
+        return image is null ? NotFound(id) : Results.File(image, "image/png");
     }
 
-    // GET /api/results/{id}/thumbnail: JPEG
+    // GET /api/results/{id}/thumbnail: JPEG. З бази читається лише стовпець ThumbnailData.
     private static async Task<IResult> GetThumbnailAsync(int id, ResultService service, CancellationToken cancellationToken)
     {
-        var result = await service.GetByIdAsync(id, cancellationToken);
-        return result is null ? NotFound(id) : Results.File(result.ThumbnailData, "image/jpeg");
+        var thumbnail = await service.GetThumbnailAsync(id, cancellationToken);
+        return thumbnail is null ? NotFound(id) : Results.File(thumbnail, "image/jpeg");
     }
 
-    // DELETE /api/results/{id}: 204; повторне видалення → 404
+    // DELETE /api/results/{id}: 204; повторне видалення - 404
     private static async Task<IResult> DeleteAsync(int id, ResultService service, CancellationToken cancellationToken)
     {
         var deleted = await service.DeleteAsync(id, cancellationToken);
         return deleted ? Results.NoContent() : NotFound(id);
     }
+
+    private static IResult Created(ResultDto dto) => Results.Created(dto.ImageUrl, dto);
 
     private static IResult NotFound(int id) =>
         ApiProblem.Result(StatusCodes.Status404NotFound, NotFoundTitle, $"Роботи з id {id} немає.");

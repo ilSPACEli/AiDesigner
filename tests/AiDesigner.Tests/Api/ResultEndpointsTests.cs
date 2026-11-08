@@ -74,7 +74,7 @@ public class ResultEndpointsTests
         var root = json.RootElement;
         var id = root.GetProperty("id").GetInt32();
         Assert.True(id > 0);
-        Assert.Equal($"/api/results/{id}", response.Headers.Location?.OriginalString);
+        Assert.Equal($"/api/results/{id}/image", response.Headers.Location?.OriginalString);
         Assert.Equal(ItemId, root.GetProperty("catalogItemId").GetString());
         Assert.Equal(ItemName, root.GetProperty("itemName").GetString());
         Assert.Equal($"/api/results/{id}/image", root.GetProperty("imageUrl").GetString());
@@ -230,6 +230,35 @@ public class ResultEndpointsTests
         await AssertProblemAsync(sixth, HttpStatusCode.TooManyRequests, GalleryRateLimiting.TooManyRequestsTitle);
         Assert.Equal(HttpStatusCode.OK, list.StatusCode);                  // обмежується лише збереження
         Assert.Equal(5, await factory.Results.CountAsync());               // шоста не збережена
+    }
+
+    [Fact]
+    public async Task AC19_Post_LocationLeadsToTheStoredImage()
+    {
+        // Location має вказувати на існуючу адресу: за нею одразу можна отримати PNG збереженої роботи.
+        using var factory = new ApiFactory();
+        var client = factory.CreateClient();
+        var created = await client.PostAsync("/api/results", Form(Png()));
+
+        var followed = await client.GetAsync(created.Headers.Location);
+
+        Assert.Equal(HttpStatusCode.OK, followed.StatusCode);
+        Assert.Equal("image/png", followed.Content.Headers.ContentType?.MediaType);
+    }
+
+    // ---------- AC-24: роздільність → 413 ----------
+
+    [Fact]
+    public async Task AC24_Post_TooManyPixels_Returns413_AndStoresNothing()
+    {
+        using var factory = new ApiFactory();
+
+        var response = await factory.CreateClient().PostAsync("/api/results", Form(HugePng.Create()));
+
+        await AssertProblemAsync(response, HttpStatusCode.RequestEntityTooLarge, ResultEndpoints.TooLargeTitle);
+        using var json = await ReadJsonAsync(response);
+        Assert.Equal(ResultService.TooManyPixelsMessage, json.RootElement.GetProperty("detail").GetString());
+        Assert.Equal(0, await factory.Results.CountAsync());
     }
 
     // ---------- 400 ----------

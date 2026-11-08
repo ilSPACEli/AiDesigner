@@ -19,6 +19,7 @@ public sealed class EfResultRepository : IResultRepository
         ArgumentNullException.ThrowIfNull(result);
         ArgumentOutOfRangeException.ThrowIfNegative(evictOldest);
 
+
         var entity = new SavedResult
         {
             CreatedAt = result.CreatedAt,
@@ -27,12 +28,12 @@ public sealed class EfResultRepository : IResultRepository
             ThumbnailData = result.ThumbnailData
         };
 
-
         await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
         try
         {
             if (evictOldest > 0)
             {
+
                 var oldestIds = await _db.SavedResults
                     .OrderBy(r => r.CreatedAt).ThenBy(r => r.Id)
                     .Select(r => r.Id)
@@ -68,8 +69,21 @@ public sealed class EfResultRepository : IResultRepository
             .Include(r => r.CatalogItem)
             .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
 
+    public Task<byte[]?> GetImageAsync(int id, CancellationToken cancellationToken = default) =>
+        _db.SavedResults.AsNoTracking()
+            .Where(r => r.Id == id)
+            .Select(r => r.ImageData)
+            .FirstOrDefaultAsync(cancellationToken);
+
+    public Task<byte[]?> GetThumbnailAsync(int id, CancellationToken cancellationToken = default) =>
+        _db.SavedResults.AsNoTracking()
+            .Where(r => r.Id == id)
+            .Select(r => r.ThumbnailData)
+            .FirstOrDefaultAsync(cancellationToken);
+
     public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
+        // Один запит DELETE: кількість видалених рядків (0 або 1) каже, чи була така робота.
         var rows = await _db.SavedResults
             .Where(r => r.Id == id)
             .ExecuteDeleteAsync(cancellationToken);
