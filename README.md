@@ -9,7 +9,7 @@
 1. Завантажити фото приміщення (JPEG/PNG, до 10 МБ, менша сторона ≥ 480 px) або зробити знімок камерою.
 2. «Аналіз» — 3–5 домінантних кольорів і рівень освітленості.
 3. «Підібрати предмети» — 3–4 предмети з каталогу з причиною добору.
-4. «Обрати» — предмет на фото; перетягнути, змінити розмір, «Зберегти» як PNG у папку `output/`.
+4. «Обрати» — предмет на фото; перетягнути, змінити розмір, «Зберегти в галерею» — результат (PNG і мініатюра) записується в базу даних, у таблицю `SavedResults`. Галерея вміщує не більше `Gallery__MaxItems` робіт (за замовчуванням 100): коли місця немає, найстаріші витісняються (правило R7).
 
 ## Запуск
 
@@ -31,6 +31,8 @@
    ```
 
    `.env` містить пароль і **не комітиться** (є в `.gitignore`). Змінні, задані в системі, мають пріоритет над `.env`.
+
+   Збереження в галерею сторінка виконує через власний HTTP API за адресою `ApiBaseUrl`. Поки що працюємо по HTTP: у `.env` має бути `ApiBaseUrl=http://localhost:5245/` (так у `.env.example`), тобто порт профілю `http`, який запускає `dotnet run`. Якщо запускаєте іншим профілем чи портом, змініть адресу. Інші налаштування галереї — `Gallery__MaxItems`, `Gallery__MaxImageBytes`, `Gallery__SavesPerMinute`: значення не більші за 0 зупиняють застосунок під час старту. Усі ключі — у [docs/api.md](docs/api.md#13-налаштування-env).
 
 3. Запустити:
 
@@ -80,7 +82,11 @@ dotnet test
 | Папка | Що всередині |
 |-------|--------------|
 | `Models/` | предметні класи за діаграмою класів; `DesignSession` — State Machine сесії |
-| `Services/` | `DesignService` (оркестратор), інтерфейси `IPhotoAnalyzer`, `ICatalog`, `IResultStorage` та реалізації |
+| `Services/` | `DesignService` (оркестратор), інтерфейси `IPhotoAnalyzer`, `ICatalog` та реалізації |
+| `Services/Results/` | галерея (US-1): `ResultService`, правило R7 `GalleryRetentionPolicy`, налаштування `GalleryOptions` |
+| `Repositories/` | сховище робіт: `IResultRepository`, реалізації `InMemory…` (тести) і `Ef…` (PostgreSQL) |
+| `Api/` | HTTP API галереї (`/api/results`), ProblemDetails, обмеження частоти збережень |
+| `Clients/` | `GalleryClient` — типізований `HttpClient` до власного API |
 | `Services/Analysis/` | аналіз фото (UC-02): k-means, освітленість |
 | `Data/` | `CatalogLoader` — читання й перевірка каталогу; `AppDbContext`, `CatalogSeeder`, міграції `Migrations/` |
 | `Components/` | сторінка `Home.razor`, полотно `PhotoCanvas.razor` |
