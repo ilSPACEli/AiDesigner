@@ -1,5 +1,6 @@
 using AiDesigner.Models;
 using AiDesigner.Repositories;
+using AiDesigner.Services.Analysis;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
@@ -18,6 +19,9 @@ public class ResultService
     public const string UnknownItemMessage = "Такого предмета немає в каталозі.";
     public const string NotPngMessage = "Дані не є зображенням PNG або файл пошкоджений.";
     public const string SaveFailedMessage = "Не вдалося зберегти зображення. Спробуйте ще раз.";
+
+    public static readonly string TooManyPixelsMessage =
+        $"Роздільність зображення завелика: не більше {PixelSampler.MaxPixels / 1_000_000} мегапікселів.";
 
     public static string TooLargeMessage(int maxImageBytes) =>
         $"Максимальний розмір — {maxImageBytes / 1048576.0:0.#} МБ.";
@@ -60,12 +64,17 @@ public class ResultService
 
         try
         {
+            var header = IdentifyPng(pngBytes);
+            if (header is null)
+                return SaveOutcome.BadRequest(NotPngMessage);
+            if ((long)header.Width * header.Height > PixelSampler.MaxPixels)
+                return SaveOutcome.TooLarge(TooManyPixelsMessage);
+
             var prepared = await PrepareAsync(pngBytes, cancellationToken);
             if (prepared is null)
                 return SaveOutcome.BadRequest(NotPngMessage);
 
-            // R7: скільки найстаріших витіснити, щоб вмістилася нова. Саме витіснення й запис
-            // репозиторій виконує однією транзакцією: збій запису не втрачає старих робіт.
+
             var count = await _repository.CountAsync(cancellationToken);
             var evict = _retention.CountToEvict(count);
 
@@ -99,15 +108,39 @@ public class ResultService
     public Task<SavedResult?> GetByIdAsync(int id, CancellationToken cancellationToken = default) =>
         _repository.GetByIdAsync(id, cancellationToken);
 
+    public Task<byte[]?> GetImageAsync(int id, CancellationToken cancellationToken = default) =>
+        _repository.GetImageAsync(id, cancellationToken);
+
+    public Task<byte[]?> GetThumbnailAsync(int id, CancellationToken cancellationToken = default) =>
+        _repository.GetThumbnailAsync(id, cancellationToken);
+
     public Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default) =>
         _repository.DeleteAsync(id, cancellationToken);
 
 
     private sealed record PreparedImages(byte[] Image, byte[] Thumbnail);
 
+    private static ImageInfo? IdentifyPng(byte[] bytes)
+    {
+        if (!HasPngSignature(bytes))
+            return null;
+
+        try
+        {
+            using var stream = new MemoryStream(bytes, writable: false);
+            var info = Image.Identify(stream);
+            return info.Metadata.DecodedImageFormat is PngFormat ? info : null;
+        }
+        catch (ImageFormatException)
+        {
+            return null;
+        }
+    }
+
     // null — це не PNG (або пошкоджений): відмова за вмістом, а не збій.
     private static async Task<PreparedImages?> PrepareAsync(byte[] pngBytes, CancellationToken cancellationToken)
     {
+        // Сигнатури замало (обрізаний файл теж її має), тому далі PNG декодується повністю.
         if (!HasPngSignature(pngBytes))
             return null;
 
@@ -128,7 +161,6 @@ public class ResultService
             if (image.Metadata.DecodedImageFormat is not PngFormat)
                 return null;
 
-
             var compressed = await EncodeAsync(
                 image,
                 new PngEncoder { CompressionLevel = PngCompressionLevel.BestCompression, SkipMetadata = true },
@@ -140,7 +172,6 @@ public class ResultService
             return new PreparedImages(compressed, jpeg);
         }
     }
-
 
     private static Image MakeThumbnail(Image source)
     {
@@ -167,7 +198,6 @@ public class ResultService
 
     private static bool HasPngSignature(byte[] bytes) =>
         bytes.Length >= PngSignature.Length && bytes.AsSpan(0, PngSignature.Length).SequenceEqual(PngSignature);
-
 
     private static SavedResult WithItem(SavedResult saved, CatalogItem item) => new()
     {

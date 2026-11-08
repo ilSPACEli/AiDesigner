@@ -234,6 +234,54 @@ public class ResultServiceTests
         Assert.Equal("Максимальний розмір — 5 МБ.", outcome.Message);
     }
 
+    // ---------- AC-24: роздільність («бомба декомпресії») ----------
+
+    [Fact]
+    public async Task AC24_Save_TooManyPixels_ReturnsTooLarge_AndStoresNothing()
+    {
+        // PNG важить десятки КБ (менше 5 МБ), але заявляє 56 Мпікс: відмова за заголовком, без декодування.
+        var png = HugePng.Create();
+        Assert.True(png.Length < 5 * 1024 * 1024);
+        var repository = new InMemoryResultRepository();
+        var service = CreateService(repository);
+
+        var outcome = await service.SaveAsync(png, ItemId);
+
+        Assert.Equal(SaveStatus.TooLarge, outcome.Status);
+        Assert.Equal(ResultService.TooManyPixelsMessage, outcome.Message);
+        Assert.Equal(0, await repository.CountAsync());
+    }
+
+    [Fact]
+    public void AC24_TooManyPixelsMessage_NamesTheLimitInMegapixels()
+    {
+        Assert.Equal("Роздільність зображення завелика: не більше 50 мегапікселів.", ResultService.TooManyPixelsMessage);
+    }
+
+    // ---------- Читання окремих зображень ----------
+
+    [Fact]
+    public async Task AC19_GetImageAndThumbnail_ReturnStoredBytes()
+    {
+        var service = CreateService();
+        var saved = await SaveOkAsync(service);
+
+        var image = await service.GetImageAsync(saved.Id);
+        var thumbnail = await service.GetThumbnailAsync(saved.Id);
+
+        Assert.Equal(saved.ImageData, image);
+        Assert.Equal(saved.ThumbnailData, thumbnail);
+    }
+
+    [Fact]
+    public async Task GetImageAndThumbnail_UnknownId_ReturnNull()
+    {
+        var service = CreateService();
+
+        Assert.Null(await service.GetImageAsync(999));
+        Assert.Null(await service.GetThumbnailAsync(999));
+    }
+
     // ---------- 400: вміст і предмет ----------
 
     [Fact]
@@ -356,6 +404,12 @@ public class ResultServiceTests
             throw new NotSupportedException();
 
         public Task<SavedResult?> GetByIdAsync(int id, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<byte[]?> GetImageAsync(int id, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<byte[]?> GetThumbnailAsync(int id, CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
 
         public Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default) =>
