@@ -16,24 +16,24 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
 
     public ApiFactory(GalleryOptions? gallery = null)
     {
+        // За замовчуванням ліміт частоти не заважає тестам, яким він не потрібен.
         Gallery = gallery ?? new GalleryOptions { SavesPerMinute = 1000 };
-
-        Environment.SetEnvironmentVariable("ConnectionStrings__Default", "Host=unused;Database=unused");
-        Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Production");   // без Migrate() для Npgsql на SQLite
     }
 
     public GalleryOptions Gallery { get; }
 
-    /// <summary>Сховище, у яке потрапляють роботи, збережені через API; тест може дивитися в нього напряму.</summary>
     public InMemoryResultRepository Results { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        // Production: стартова ініціалізація не викликає Migrate() (міграції написані під Npgsql, а тут SQLite).
         builder.UseEnvironment("Production");
+
+        builder.UseSetting("ConnectionStrings:Default", "Host=unused;Database=unused");
 
         builder.ConfigureTestServices(services =>
         {
-            // Замість Npgsql — SQLite у пам'яті, у який стартова ініціалізація засіває каталог.
+            // Замість Npgsql: SQLite у пам'яті, у який стартова ініціалізація засіває каталог.
             services.RemoveAll<AppDbContext>();
             services.AddScoped(_ => _testDb.CreateContext());
 
