@@ -2,6 +2,7 @@ using AiDesigner.Api;
 using AiDesigner.Api.Endpoints;
 using AiDesigner.Components;
 using AiDesigner.Data;
+using AiDesigner.Clients;
 using AiDesigner.Repositories;
 using AiDesigner.Services;
 using AiDesigner.Services.Analysis;
@@ -40,6 +41,14 @@ builder.Services.AddSingleton(
 builder.Services.AddScoped<IResultRepository, EfResultRepository>();
 builder.Services.AddScoped<ResultService>();
 builder.Services.AddGalleryRateLimiting();
+
+builder.Services.AddHttpClient<IGalleryClient, GalleryClient>((services, client) =>
+{
+    var baseUrl = services.GetRequiredService<IConfiguration>()["ApiBaseUrl"];
+    if (string.IsNullOrWhiteSpace(baseUrl))
+        throw new InvalidOperationException("Не задано ApiBaseUrl. Створіть .env за зразком .env.example.");
+    client.BaseAddress = new Uri(baseUrl);
+});
 
 var app = builder.Build();
 
