@@ -2,13 +2,12 @@ using AiDesigner.Models;
 using AiDesigner.Services;
 using AiDesigner.Services.Analysis;
 using AiDesigner.Services.Stubs;
+using AiDesigner.Tests.Clients;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace AiDesigner.Tests.Analysis;
 
-/// <summary>
-/// Тести UC-02 цілком: PhotoAnalyzer окремо й разом із DesignService (стани сесії).
-/// </summary>
+
 public class PhotoAnalyzerTests
 {
     private static Photo PhotoOf(byte[] content) => new()
@@ -32,7 +31,7 @@ public class PhotoAnalyzerTests
         (new Rgb24(240, 230, 215), 50), (new Rgb24(220, 225, 235), 30), (new Rgb24(200, 210, 190), 20));
 
     private static DesignService ServiceWithRealAnalyzer() =>
-        new(new PhotoAnalyzer(), new StubCatalog(), new StubResultStorage());
+        new(new PhotoAnalyzer(), new StubCatalog(), new RecordingGalleryClient());
 
     // ---------- AC-03: гама ----------
 

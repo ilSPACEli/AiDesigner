@@ -1,7 +1,12 @@
+using AiDesigner.Api;
+using AiDesigner.Api.Endpoints;
 using AiDesigner.Components;
 using AiDesigner.Data;
+using AiDesigner.Clients;
+using AiDesigner.Repositories;
 using AiDesigner.Services;
 using AiDesigner.Services.Analysis;
+using AiDesigner.Services.Results;
 using DotNetEnv;
 using Microsoft.EntityFrameworkCore;
 
@@ -29,6 +34,20 @@ if (string.IsNullOrWhiteSpace(connectionString))
         "Не задано ConnectionStrings:Default. Створіть .env за зразком .env.example.");
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
+
+// Галерея (US-1): налаштування Gallery:*, репозиторій, сервіс, обмеження частоти збережень
+builder.Services.AddGalleryOptions(builder.Configuration);
+builder.Services.AddScoped<IResultRepository, EfResultRepository>();
+builder.Services.AddScoped<ResultService>();
+builder.Services.AddGalleryRateLimiting();
+
+builder.Services.AddHttpClient<IGalleryClient, GalleryClient>((services, client) =>
+{
+    var baseUrl = services.GetRequiredService<IConfiguration>()["ApiBaseUrl"];
+    if (string.IsNullOrWhiteSpace(baseUrl))
+        throw new InvalidOperationException("Не задано ApiBaseUrl. Створіть .env за зразком .env.example.");
+    client.BaseAddress = new Uri(baseUrl);
+});
 
 var app = builder.Build();
 
@@ -61,7 +80,14 @@ app.UseStaticFiles(new StaticFileOptions
 });
 app.UseAntiforgery();
 
+app.UseRateLimiter();
+
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
+app.MapResultEndpoints();
+
 app.Run();
+
+// Потрібно, щоб WebApplicationFactory<Program> у тестах бачив клас Program
+public partial class Program { }

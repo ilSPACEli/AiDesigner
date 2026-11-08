@@ -19,7 +19,7 @@
 |---|---|---|---|
 | `GET /api/catalog` | `200` + `CatalogItemDto[]` | — | 2 |
 | `POST /api/suggestions` | `200` + `SuggestionDto[]` | `400` некоректний запит · `422` придатних предметів немає · `503` каталог недоступний | 2 |
-| `POST /api/results` | `201` + `ResultDto`, заголовок `Location` | `400` не PNG / немає предмета · `413` > 5 МБ · `429` забагато збережень · `500` помилка запису | 3 |
+| `POST /api/results` | `201` + `ResultDto`, заголовок `Location` (адреса зображення, `/api/results/{id}/image`) | `400` не PNG, немає файла чи предмета, предмета немає в каталозі · `413` > 5 МБ або > 50 Мпікс · `429` забагато збережень (заголовок `Retry-After`) · `500` помилка запису | 3 |
 | `GET /api/results` | `200` + `ResultDto[]` (нові спершу) | — | 3 |
 | `GET /api/results/{id}/image` | `200` + `image/png` | `404` | 3 |
 | `GET /api/results/{id}/thumbnail` | `200` + `image/jpeg` | `404` | 3 |
@@ -71,10 +71,31 @@
 
 | Поле | Тип | Обов'язкове | Перевірка |
 |---|---|---|---|
-| `image` | файл `image/png` | так | PNG за вмістом, ≤ 5 МБ |
+| `image` | файл `image/png` | так | PNG за вмістом (не за розширенням і не за `Content-Type`), ≤ 5 МБ, ≤ 50 мегапікселів (ширина × висота) |
 | `catalogItemId` | рядок | так | предмет існує в каталозі |
 
-Після збереження діє правило **R7**: якщо робіт більше за ліміт (`Gallery:MaxItems`, за замовчуванням 100), найстаріші видаляються в тій самій транзакції; щойно збережена не видаляється. Частота — не більше `Gallery:SavesPerMinute` (5) з однієї адреси.
+Після збереження діє правило **R7**: якщо робіт більше за ліміт (`Gallery:MaxItems`, за замовчуванням 100), найстаріші видаляються в тій самій транзакції; щойно збережена не видаляється. Частота — не більше `Gallery:SavesPerMinute` (5) з однієї адреси. Докладніше про сховище й ліміти — [data.md](data.md#35-збереження-результатів-r7-і-ліміти-us-1-44).
+
+Усі відмови — `application/problem+json` з полями `status`, `title`, `detail`. Приклади `detail`:
+
+| Статус | `title` | `detail` |
+|---|---|---|
+| `400` | Некоректний запит | «Не передано файл у полі image.» · «Не вказано предмет каталогу.» · «Такого предмета немає в каталозі.» · «Дані не є зображенням PNG або файл пошкоджений.» |
+| `413` | Зображення завелике | «Максимальний розмір — 5 МБ.» · «Роздільність зображення завелика: не більше 50 мегапікселів.» |
+| `429` | Забагато збережень | «Ліміт збережень — 5 за хвилину. Спробуйте пізніше.» + заголовок `Retry-After` (секунди) |
+| `500` | Помилка збереження | «Не вдалося зберегти зображення. Спробуйте ще раз.» |
+
+#### Відхилення від початкового контракту
+
+Реалізація в #44 уточнює чернетку контракту. Що саме змінилося й чому:
+
+- **`Location`** вказує на `/api/results/{id}/image`, а не на `/api/results/{id}`: окремого `GET` за `id` у контракті немає, а за адресою зображення збережену роботу можна одразу отримати.
+- **`413` також за роздільністю.** Малий за розміром PNG може розпакуватися у величезне зображення («бомба декомпресії»), тому ширина × висота перевіряються за заголовком PNG ще до декодування (50 Мпікс, як в аналізі фото). Це другий привід для `413` поряд із розміром у байтах.
+- **`429` містить `Retry-After`** — число секунд до наступної спроби.
+- **`400` також для невідомого предмета** (`catalogItemId` не знайдено в каталозі) і для запиту, що не є `multipart/form-data`.
+- **`id` у шляху — ціле число.** Адреси на кшталт `/api/results/abc/image` не відповідають жодному маршруту, відповідь — порожній `404` без тіла ProblemDetails.
+- **Частота рахується за IP-адресою клієнта.** Збереження зі сторінки йде через `GalleryClient` на той самий сервер (`127.0.0.1`), тому для користувачів інтерфейсу ліміт спільний; перевіряти AC-24 слід прямими викликами API.
+- **Антифорджері вимкнено на `POST /api/results`** (`DisableAntiforgery`): ендпоінт призначений для API-клієнтів без форм і cookie; для Blazor антифорджері лишається.
 
 ### 1.3 Налаштування (`.env`)
 
@@ -82,10 +103,12 @@
 |---|---|---|
 | `ConnectionStrings__Default` | `Host=...;Database=aidesigner_dev;Username=...;Password=...;SSL Mode=Require` | рядок підключення до бази даних |
 | `ASPNETCORE_ENVIRONMENT` | `Development` | у Development міграції застосовуються автоматично |
-| `ApiBaseUrl` | `https://localhost:7003/` | адреса власного API для клієнтів |
+| `ApiBaseUrl` | `http://localhost:5245/` | адреса власного API для клієнтів; поки що HTTP, порт профілю `http` (`dotnet run`) |
 | `Gallery__MaxItems` | `100` | ліміт галереї (R7) |
 | `Gallery__MaxImageBytes` | `5242880` | максимальний розмір зображення |
 | `Gallery__SavesPerMinute` | `5` | частота збережень з однієї адреси |
+
+Значення `Gallery__*`, не більші за 0, зупиняють застосунок під час старту (`OptionsValidationException`).
 
 
 ## 2. Внутрішні сервіси v1.0 (без змін)
@@ -103,7 +126,7 @@
 | `Suggest()` | UC-03 | добір 4 пропозицій із каталогу | `ServiceResult`; немає предметів (R5) або каталог недоступний (E1) → стан не змінюється |
 | `PlaceItemAtCenter(CatalogItem item, int itemWidth, int itemHeight)` | UC-04 | початкове положення по центру фото (AC-08) | `PlacementValues(X, Y, Scale)`; стан `ITEM_PLACED` |
 | `UpdatePlacement(int x, int y, decimal scale, int itemWidth, int itemHeight)` | UC-04 | нове положення з обмеженням межами фото (AC-09) | `PlacementValues` — фактично застосовані значення |
-| `SaveAsync(byte[] pngBytes, CancellationToken)` | UC-04 | збереження PNG (FR-11) | `ServiceResult`; успіх → `SAVED`, помилка → `ITEM_PLACED` (E1) |
+| `SaveAsync(byte[] pngBytes, CancellationToken)` | UC-04 | збереження PNG у галерею через `IGalleryClient` (FR-11, US-1); `catalogItemId` береться з `Session.Placement` | `ServiceResult`; успіх → `SAVED`, помилка → `ITEM_PLACED` (E1); відмова API (`413`, `429`, `400`) повертає текст `detail` із ProblemDetails |
 
 Властивості: `Session` (поточна `DesignSession`), `IsLoadingPhoto`, `AnalysisTimeout` (30 с; у тестах можна зменшити).
 
@@ -121,7 +144,14 @@ public interface ICatalog         // UC-03, реалізація — Catalog
     IReadOnlyList<Suggestion> Select(AnalysisResult analysis, int count);
 }
 
-public interface IResultStorage   // UC-04, реалізація — FileResultStorage
+public interface IGalleryClient   // US-1, реалізація — GalleryClient (HTTP до власного API)
+{
+    Task<GallerySaveResult> SaveAsync(byte[] pngBytes, string catalogItemId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ResultDto>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default);   // false — 404
+}
+
+public interface IResultStorage   // v1: з S1 (#44) DesignService його не використовує; лишається до окремого прибирання
 {
     Task<ResultImage> SaveAsync(byte[] pngBytes, CancellationToken cancellationToken = default);
 }
@@ -150,7 +180,7 @@ public interface IResultStorage   // UC-04, реалізація — FileResultS
 ## 4. Формат даних
 
 - **Каталог:** `wwwroot/data/catalog.json` — масив `CatalogItem` (camelCase, enum рядками); опис полів — [data.md](data.md#12-формат-catalogjson). Читання — `CatalogLoader.LoadFromFile(path)` → `IReadOnlyList<CatalogItem>` або `CatalogException` з переліком усіх помилок.
-- **Результат:** PNG у `output/result-<yyyyMMdd-HHmmss>-<8 символів GUID>.png`; метадані — `ResultImage` (`FileName`, `Format`, `CreatedAt`).
+- **Результат:** рядок таблиці `SavedResults` (PNG і мініатюра JPEG), див. [data.md](data.md#31-таблиці) і [3.5](data.md#35-збереження-результатів-r7-і-ліміти-us-1-44). У сесії лишається `ResultImage`: `FileName` = `result-<id>.png` (умовна назва для завантаження), `Format`, `CreatedAt`.
 - **Фото користувача** зберігається лише в пам'яті (`Photo.Content`) і на диск не пишеться (NFR-04).
 
-> У S1 `ICatalog` і `IResultStorage` замінюються на `SuggestionService` / `ICatalogRepository` і `ResultService` / `IResultRepository` (задачі 2 і 3); цей розділ оновлюється разом із кодом.
+> У S1 `ICatalog` замінюється на `SuggestionService` / `ICatalogRepository` (задача 2); `IResultStorage` уже замінено на `ResultService` / `IResultRepository` / `GalleryClient` (задача 3, #44). Цей розділ оновлюється разом із кодом.

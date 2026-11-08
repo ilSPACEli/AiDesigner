@@ -104,7 +104,7 @@
                 <h2>4. Збереження</h2>
                 <button class="btn" @onclick="SaveAsync"
                         disabled="@(Session.State != SessionState.ITEM_PLACED || _busy)">
-                    @(_saving ? "Збереження…" : "Зберегти")
+                    @(_saving ? "Збереження…" : "Зберегти в галерею")
                 </button>
                 @if (Session.SavedResults.Count > 0)
                 {
@@ -260,7 +260,7 @@
                 return;
             }
 
-            ShowInfo($"Результат збережено: {Session.SavedResults[^1].FileName}");
+            ShowInfo("Результат збережено в галерею.");
             await LockCanvasAsync();
         }
         catch (Exception)
