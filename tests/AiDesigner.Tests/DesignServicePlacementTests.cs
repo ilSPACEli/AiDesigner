@@ -1,6 +1,7 @@
 using AiDesigner.Models;
 using AiDesigner.Services;
 using AiDesigner.Services.Stubs;
+using AiDesigner.Tests.Clients;
 
 namespace AiDesigner.Tests;
 
@@ -22,7 +23,7 @@ public class DesignServicePlacementTests
     // Сервіс у стані SUGGESTIONS_SHOWN (на заглушках).
     private static async Task<DesignService> CreateSuggestedAsync()
     {
-        var service = new DesignService(new StubPhotoAnalyzer(), new StubCatalog(), new StubResultStorage());
+        var service = new DesignService(new StubPhotoAnalyzer(), new StubCatalog(), new RecordingGalleryClient());
         service.LoadPhoto(CreatePhoto());
         await service.AnalyzeAsync();
         service.Suggest();
@@ -49,7 +50,7 @@ public class DesignServicePlacementTests
     [Fact]
     public void AC08_PlaceItemAtCenter_BeforeSuggestions_Throws()
     {
-        var service = new DesignService(new StubPhotoAnalyzer(), new StubCatalog(), new StubResultStorage());
+        var service = new DesignService(new StubPhotoAnalyzer(), new StubCatalog(), new RecordingGalleryClient());
         service.LoadPhoto(CreatePhoto());   // PHOTO_LOADED
         var item = new StubCatalog().Items[0];
 
