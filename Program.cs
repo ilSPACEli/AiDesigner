@@ -36,8 +36,7 @@ if (string.IsNullOrWhiteSpace(connectionString))
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
 
 // Галерея (US-1): налаштування Gallery:*, репозиторій, сервіс, обмеження частоти збережень
-builder.Services.AddSingleton(
-    builder.Configuration.GetSection(GalleryOptions.SectionName).Get<GalleryOptions>() ?? new GalleryOptions());
+builder.Services.AddGalleryOptions(builder.Configuration);
 builder.Services.AddScoped<IResultRepository, EfResultRepository>();
 builder.Services.AddScoped<ResultService>();
 builder.Services.AddGalleryRateLimiting();
