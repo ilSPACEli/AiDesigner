@@ -1,9 +1,20 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 
+<header class="app-header">
+    <div class="app-header-inner">
+        <a class="app-brand" href="">ШІ-дизайнер інтер'єру</a>
+        <nav class="app-nav" aria-label="Основна навігація">
+            <NavLink href="" Match="NavLinkMatch.All">Дизайн</NavLink>
+            <NavLink href="gallery">Галерея</NavLink>
+        </nav>
+    </div>
+</header>
+
+@* Кожна сторінка сама має <main> (див. Home.razor), тому тут його не обгортаємо. *@
 @Body
 
 <div id="blazor-error-ui">
-    An unhandled error has occurred.
-    <a href="" class="reload">Reload</a>
+    Сталася неочікувана помилка.
+    <a href="" class="reload">Перезавантажити</a>
     <a class="dismiss">🗙</a>
 </div>
