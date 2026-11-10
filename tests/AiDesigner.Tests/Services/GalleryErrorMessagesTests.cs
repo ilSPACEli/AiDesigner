@@ -17,7 +17,7 @@ public class GalleryErrorMessagesTests
     }
 
     [Fact]
-    public void AC19_TooManyRequests_ReturnsTooManyRequestsMessage()
+    public void AC24_TooManyRequests_ReturnsTooManyRequestsMessage()
     {
         var message = GalleryErrorMessages.FromException(Http(HttpStatusCode.TooManyRequests));
 
@@ -25,7 +25,7 @@ public class GalleryErrorMessagesTests
     }
 
     [Fact]
-    public void AC19_NoStatus_ReturnsNoConnectionMessage()
+    public void NoStatus_ReturnsNoConnectionMessage()
     {
         // StatusCode == null: відповіді від сервера не було.
         var message = GalleryErrorMessages.FromException(Http(null));
@@ -37,7 +37,7 @@ public class GalleryErrorMessagesTests
     [InlineData(HttpStatusCode.InternalServerError)]
     [InlineData(HttpStatusCode.ServiceUnavailable)]
     [InlineData(HttpStatusCode.BadRequest)]
-    public void AC19_OtherStatus_ReturnsServerErrorMessage(HttpStatusCode status)
+    public void OtherStatus_ReturnsServerErrorMessage(HttpStatusCode status)
     {
         var message = GalleryErrorMessages.FromException(Http(status));
 
@@ -45,7 +45,7 @@ public class GalleryErrorMessagesTests
     }
 
     [Fact]
-    public void AC19_NotHttpException_ReturnsUnexpectedMessage()
+    public void NotHttpException_ReturnsUnexpectedMessage()
     {
         var message = GalleryErrorMessages.FromException(new InvalidOperationException("збій"));
 
@@ -53,7 +53,7 @@ public class GalleryErrorMessagesTests
     }
 
     [Fact]
-    public void AC19_NullException_Throws()
+    public void NullException_Throws()
     {
         Assert.Throws<ArgumentNullException>(() => GalleryErrorMessages.FromException(null!));
     }

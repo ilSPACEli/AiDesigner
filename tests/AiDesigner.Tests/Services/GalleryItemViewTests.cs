@@ -68,7 +68,7 @@ public class GalleryItemViewTests
     }
 
     [Fact]
-    public void AC19_From_NullResult_Throws()
+    public void From_NullResult_Throws()
     {
         Assert.Throws<ArgumentNullException>(() => GalleryItemView.From(null!));
     }

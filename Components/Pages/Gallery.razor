@@ -2,6 +2,7 @@
 @using AiDesigner.Clients
 @using AiDesigner.Services.Results
 @inject IGalleryClient Client
+@inject IJSRuntime JS
 
 <PageTitle>Галерея — ШІ-дизайнер інтер'єру</PageTitle>
 
@@ -72,6 +73,7 @@
     private string? _error;
     private int? _confirmingId;         // картка, де зараз питаємо «Видалити цю роботу?»
     private int? _busyId;               // картка, яку зараз видаляють
+    private TimeZoneInfo? _zone;        // пояс браузера (визначаємо один раз)
 
     // Завантажуємо після першого показу, коли вже є інтерактивне з'єднання:
     // під час попереднього рендеру сторінка не робить запиту до власного API.
@@ -89,8 +91,9 @@
 
         try
         {
+            _zone ??= await ResolveZoneAsync();
             var results = await Client.GetAllAsync();
-            _items = results.Select(r => GalleryItemView.From(r)).ToList();
+            _items = results.Select(r => GalleryItemView.From(r, _zone)).ToList();
         }
         catch (Exception ex)
         {
@@ -102,6 +105,21 @@
         {
             _loading = false;
             StateHasChanged();
+        }
+    }
+
+    // Сервер не знає пояса користувача — питаємо браузер. Не вийшло: час за поясом сервера.
+    private async Task<TimeZoneInfo> ResolveZoneAsync()
+    {
+        try
+        {
+            await using var module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/browserInfo.js");
+            var id = await module.InvokeAsync<string?>("getTimeZone");
+            return BrowserTimeZone.Resolve(id);
+        }
+        catch (Exception)
+        {
+            return TimeZoneInfo.Local;
         }
     }
 

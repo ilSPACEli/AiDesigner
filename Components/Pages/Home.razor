@@ -293,7 +293,7 @@
             var png = await _canvas.ExportPngAsync();
             using var reference = new DotNetStreamReference(new MemoryStream(png));
             await using var module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/download.js");
-            await module.InvokeVoidAsync("downloadFile", DesignDownloadName.For(DateTime.Now), reference);
+            await module.InvokeVoidAsync("downloadFile", DesignDownloadName.For(DateTime.UtcNow), reference);
         }
         catch (Exception)
         {
