@@ -33,6 +33,14 @@ html, body {
 
 img { max-width: 100%; }   /* зображення не розпирають екран телефона */
 
+/* Контейнер сторінки (його використовують «Дизайн» і «Галерея») */
+.page {
+    max-width: var(--content-max-width);
+    margin: 0 auto;
+    padding: var(--space-6) var(--space-4) 48px;
+}
+.page h1 { margin: 0 0 var(--space-1); font-size: 1.8rem; }
+
 /* Кнопки: <button class="btn"> або <a class="btn"> */
 .btn {
     display: inline-block;
