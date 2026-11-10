@@ -1,7 +1,9 @@
 @page "/"
 @using AiDesigner.Models
 @using AiDesigner.Services
+@using AiDesigner.Services.Results
 @inject DesignService Design
+@inject IJSRuntime JS
 
 <PageTitle>ШІ-дизайнер інтер'єру</PageTitle>
 
@@ -102,10 +104,16 @@
             @* 4. Збереження (UC-04) *@
             <section class="step">
                 <h2>4. Збереження</h2>
-                <button class="btn" @onclick="SaveAsync"
-                        disabled="@(Session.State != SessionState.ITEM_PLACED || _busy)">
-                    @(_saving ? "Збереження…" : "Зберегти в галерею")
-                </button>
+                <div class="save-actions">
+                    <button class="btn" @onclick="SaveAsync"
+                            disabled="@(Session.State != SessionState.ITEM_PLACED || _busy)">
+                        @(_saving ? "Збереження…" : "Зберегти в галерею")
+                    </button>
+                    <button class="btn btn-secondary" @onclick="DownloadAsync"
+                            disabled="@(Session.State is not (SessionState.ITEM_PLACED or SessionState.SAVED) || _busy)">
+                        Завантажити
+                    </button>
+                </div>
                 @if (Session.SavedResults.Count > 0)
                 {
                     <ul class="saved">
@@ -272,6 +280,28 @@
         {
             _busy = false;
             _saving = false;
+        }
+    }
+
+    // «Завантажити»: PNG у роздільності оригіналу йде на комп'ютер користувача через браузер.
+    // У БД і в сесію нічого не потрапляє, стан сесії не змінюється.
+    private async Task DownloadAsync()
+    {
+        _busy = true;
+        try
+        {
+            var png = await _canvas.ExportPngAsync();
+            using var reference = new DotNetStreamReference(new MemoryStream(png));
+            await using var module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/download.js");
+            await module.InvokeVoidAsync("downloadFile", DesignDownloadName.For(DateTime.UtcNow), reference);
+        }
+        catch (Exception)
+        {
+            ShowError("Не вдалося завантажити файл. Спробуйте ще раз.");
+        }
+        finally
+        {
+            _busy = false;
         }
     }
 

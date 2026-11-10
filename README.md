@@ -10,6 +10,7 @@
 2. «Аналіз» — 3–5 домінантних кольорів і рівень освітленості.
 3. «Підібрати предмети» — 3–4 предмети з каталогу з причиною добору.
 4. «Обрати» — предмет на фото; перетягнути, змінити розмір, «Зберегти в галерею» — результат (PNG і мініатюра) записується в базу даних, у таблицю `SavedResults`. Галерея вміщує не більше `Gallery__MaxItems` робіт (за замовчуванням 100): коли місця немає, найстаріші витісняються (правило R7).
+5. «Завантажити» (на сторінці «Дизайн») — PNG у повній роздільності зберігається на комп'ютер користувача, у базу даних не потрапляє. Сторінка «Галерея» (`/gallery`, пункт навігації «Галерея») показує збережені роботи (мініатюра, дата, предмет): «Відкрити» — повне зображення, «Завантажити» — файл `result-<id>.png`, «Видалити» — після підтвердження в картці.
 
 ## Запуск
 
@@ -83,14 +84,14 @@ dotnet test
 |-------|--------------|
 | `Models/` | предметні класи за діаграмою класів; `DesignSession` — State Machine сесії |
 | `Services/` | `DesignService` (оркестратор), інтерфейси `IPhotoAnalyzer`, `ICatalog` та реалізації |
-| `Services/Results/` | галерея (US-1): `ResultService`, правило R7 `GalleryRetentionPolicy`, налаштування `GalleryOptions` |
+| `Services/Results/` | галерея (US-1): `ResultService`, правило R7 `GalleryRetentionPolicy`, налаштування `GalleryOptions`; допоміжні класи сторінок: `GalleryItemView`, `GalleryErrorMessages`, `BrowserTimeZone`, `DesignDownloadName` |
 | `Repositories/` | сховище робіт: `IResultRepository`, реалізації `InMemory…` (тести) і `Ef…` (PostgreSQL) |
 | `Api/` | HTTP API галереї (`/api/results`), ProblemDetails, обмеження частоти збережень |
 | `Clients/` | `GalleryClient` — типізований `HttpClient` до власного API |
 | `Services/Analysis/` | аналіз фото (UC-02): k-means, освітленість |
 | `Data/` | `CatalogLoader` — читання й перевірка каталогу; `AppDbContext`, `CatalogSeeder`, міграції `Migrations/` |
-| `Components/` | сторінка `Home.razor`, полотно `PhotoCanvas.razor` |
-| `wwwroot/` | `js/photoCanvas.js` (Fabric.js), каталог `data/catalog.json`, `images/catalog/` |
+| `Components/` | сторінки `Pages/Home.razor` («Дизайн») і `Pages/Gallery.razor` («Галерея»), макет `Layout/MainLayout.razor`, полотно `Shared/PhotoCanvas.razor` |
+| `wwwroot/` | `app.css` (єдині стилі), `js/photoCanvas.js` (Fabric.js), `js/download.js`, `js/browserInfo.js`, каталог `data/catalog.json`, `images/catalog/` |
 | `tests/AiDesigner.Tests/` | xUnit-тести (397) |
 | `docs/`, `model/` | документація й UML-моделі |
 
