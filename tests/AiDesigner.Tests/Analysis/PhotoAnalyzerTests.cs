@@ -31,7 +31,7 @@ public class PhotoAnalyzerTests
         (new Rgb24(240, 230, 215), 50), (new Rgb24(220, 225, 235), 30), (new Rgb24(200, 210, 190), 20));
 
     private static DesignService ServiceWithRealAnalyzer() =>
-        new(new PhotoAnalyzer(), new StubCatalog(), new RecordingGalleryClient());
+        new(new PhotoAnalyzer(), new FakeCatalogClient(), new FakeSuggestionClient(), new RecordingGalleryClient());
 
     // ---------- AC-03: гама ----------
 

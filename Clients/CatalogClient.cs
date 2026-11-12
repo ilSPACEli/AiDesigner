@@ -3,7 +3,7 @@ using AiDesigner.Api.Dto;
 
 namespace AiDesigner.Clients;
 
-public class CatalogClient
+public class CatalogClient : ICatalogClient
 {
     private readonly HttpClient _httpClient;
 

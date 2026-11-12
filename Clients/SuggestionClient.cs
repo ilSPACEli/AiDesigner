@@ -3,8 +3,8 @@ using AiDesigner.Api.Dto;
 
 namespace AiDesigner.Clients;
 
-public class SuggestionClient
-{
+public class SuggestionClient : ISuggestionClient
+{ 
     private readonly HttpClient _httpClient;
 
     public SuggestionClient(HttpClient httpClient)

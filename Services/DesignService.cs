@@ -1,3 +1,4 @@
+using AiDesigner.Api.Dto;
 using AiDesigner.Clients;
 using AiDesigner.Models;
 
@@ -8,13 +9,15 @@ public class DesignService
     public const int SuggestionCount = 4;
 
     private readonly IPhotoAnalyzer _analyzer;
-    private readonly ICatalog _catalog;
+    private readonly ICatalogClient _catalogClient;
+    private readonly ISuggestionClient _suggestionClient;
     private readonly IGalleryClient _gallery;
 
-    public DesignService(IPhotoAnalyzer analyzer, ICatalog catalog, IGalleryClient gallery)
+    public DesignService(IPhotoAnalyzer analyzer, ICatalogClient catalogClient, ISuggestionClient suggestionClient, IGalleryClient gallery)
     {
         _analyzer = analyzer;
-        _catalog = catalog;
+        _catalogClient = catalogClient;
+        _suggestionClient = suggestionClient;
         _gallery = gallery;
     }
 
@@ -212,27 +215,61 @@ public class DesignService
         }
     }
 
-    public ServiceResult Suggest()
+    // Змінено на асинхронний метод, оскільки клієнт працює через HTTP
+    public async Task<ServiceResult> SuggestAsync(CancellationToken ct = default)
+{
+    var analysis = Session.Analysis
+        ?? throw new InvalidOperationException("Спочатку виконайте аналіз фото.");
+
+    IReadOnlyList<SuggestionDto> suggestedDtos;
+    IEnumerable<CatalogItemDto> allItems;
+
+    try
     {
-        var analysis = Session.Analysis
-            ?? throw new InvalidOperationException("Спочатку виконайте аналіз фото.");
-
-        IReadOnlyList<Suggestion> suggestions;
-        try
+        var requestDto = new AnalysisRequestDto
         {
-            suggestions = _catalog.Select(analysis, SuggestionCount);
-        }
-        catch (Exception)
-        {
-            return ServiceResult.Fail("Каталог предметів недоступний. Спробуйте пізніше.");
-        }
+            LightLevel = analysis.Lighting.ToString(),
+            // Беремо Hex-коди з домінантних кольорів
+            DominantColors = analysis.Colors.Select(c => c.Hex).ToList() 
+        };
 
-        if (suggestions.Count == 0)
-            return ServiceResult.Fail("Придатних предметів немає. Спробуйте надати інше фото.");
-
-        Session.ShowSuggestions(suggestions);
-        return ServiceResult.Ok();
+        suggestedDtos = (await _suggestionClient.GetSuggestionsAsync(requestDto, ct)).Take(SuggestionCount).ToList();
+        allItems = await _catalogClient.GetCatalogAsync(ct);
     }
+    catch (Exception)
+    {
+        return ServiceResult.Fail("Каталог предметів недоступний. Спробуйте пізніше.");
+    }
+
+    if (suggestedDtos.Count == 0)
+        return ServiceResult.Fail("Придатних предметів немає. Спробуйте надати інше фото.");
+
+    var domainSuggestions = new List<Suggestion>();
+    int rank = 1;
+
+    foreach (var dto in suggestedDtos)
+    {
+        var itemDto = allItems.FirstOrDefault(i => i.Id == dto.Id);
+        if (itemDto != null)
+        {
+            var catalogItem = new CatalogItem 
+            { 
+                Id = itemDto.Id, 
+                Type = Enum.TryParse<ItemType>(itemDto.Type, true, out var t) ? t : default,
+            };
+
+            domainSuggestions.Add(new Suggestion 
+            { 
+                Item = catalogItem,
+                Rank = rank++,
+                Reason = "Підібрано за допомогою API" 
+            });
+        }
+    }
+
+    Session.ShowSuggestions(domainSuggestions);
+    return ServiceResult.Ok();
+}
 
     public void PlaceItem(CatalogItem item, int x, int y) =>
         Session.PlaceItem(new Placement(item, x, y));

@@ -1,11 +1,11 @@
+using AiDesigner.Api.Dto;
 using AiDesigner.Clients;
 using AiDesigner.Models;
+using AiDesigner.Tests.Clients;
 using AiDesigner.Services;
 using AiDesigner.Services.Stubs;
-using AiDesigner.Tests.Clients;
 
 namespace AiDesigner.Tests;
-
 
 public class DesignServiceTests
 {
@@ -17,12 +17,6 @@ public class DesignServiceTests
             run(cancellationToken);
     }
 
-    private sealed class FakeCatalog(Func<IReadOnlyList<Suggestion>> select) : ICatalog
-    {
-        public IReadOnlyList<CatalogItem> Items => Array.Empty<CatalogItem>();
-        public IReadOnlyList<Suggestion> Select(AnalysisResult analysis, int count) => select();
-    }
-
     private static Photo CreatePhoto() => new()
     {
         FileName = "room.jpg", Format = "jpeg", Width = 800, Height = 600, SizeBytes = 1000,
@@ -30,10 +24,27 @@ public class DesignServiceTests
     };
 
     private static DesignService CreateService(
-        IPhotoAnalyzer? analyzer = null, ICatalog? catalog = null, IGalleryClient? gallery = null) =>
-        new(analyzer ?? new StubPhotoAnalyzer(),
-            catalog ?? new StubCatalog(),
+        IPhotoAnalyzer? analyzer = null, 
+        ICatalogClient? catalogClient = null, 
+        ISuggestionClient? suggestionClient = null, 
+        IGalleryClient? gallery = null)
+    {
+        // Створюємо дефолтні фейки, щоб тести проходили
+        var defaultCatalog = new FakeCatalogClient(() => new List<CatalogItemDto> 
+        { 
+            new() { Id = "item1", Type = "SOFA" } 
+        });
+        var defaultSuggestion = new FakeSuggestionClient(() => new List<SuggestionDto> 
+        { 
+            new() { Id = "item1" } 
+        });
+
+        return new DesignService(
+            analyzer ?? new StubPhotoAnalyzer(),
+            catalogClient ?? defaultCatalog,
+            suggestionClient ?? defaultSuggestion,
             gallery ?? new RecordingGalleryClient());
+    }
 
     // Сервіс у стані ITEM_PLACED: фото → аналіз → пропозиції → предмет розміщено.
     private static async Task<DesignService> CreatePlacedAsync(IGalleryClient gallery)
@@ -41,7 +52,7 @@ public class DesignServiceTests
         var service = CreateService(gallery: gallery);
         service.LoadPhoto(CreatePhoto());
         await service.AnalyzeAsync();
-        service.Suggest();
+        await service.SuggestAsync(); // Оновлено на асинхронний виклик
         service.PlaceItem(service.Session.Suggestions[0].Item, 0, 0);
         return service;
     }
@@ -55,7 +66,7 @@ public class DesignServiceTests
 
         service.LoadPhoto(CreatePhoto());
         var analysis = await service.AnalyzeAsync();
-        var suggest = service.Suggest();
+        var suggest = await service.SuggestAsync(); // Оновлено
         service.PlaceItem(service.Session.Suggestions[0].Item, 10, 10);
         var save = await service.SaveAsync(new byte[] { 1 });
 
@@ -98,10 +109,10 @@ public class DesignServiceTests
     [Fact]
     public async Task Analyze_Timeout_ReturnsError_KeepsPhotoLoaded()
     {
-        // Аналізатор «зависає» назавжди; тайм-аут зменшено до 200 мс, щоб тест був швидким.
         var service = new DesignService(
             new FakeAnalyzer(async ct => { await Task.Delay(Timeout.Infinite, ct); return AnalysisOutcome.InsufficientData(); }),
-            new StubCatalog(),
+            new FakeSuggestionClient(() => Array.Empty<SuggestionDto>()),
+            new FakeCatalogClient(() => Array.Empty<CatalogItemDto>()),
             new RecordingGalleryClient())
         {
             AnalysisTimeout = TimeSpan.FromMilliseconds(200)
@@ -133,11 +144,11 @@ public class DesignServiceTests
     [Fact]
     public async Task Suggest_NoItems_Fails_StaysAnalyzed()
     {
-        var service = CreateService(catalog: new FakeCatalog(() => Array.Empty<Suggestion>()));
+        var service = CreateService(suggestionClient: new FakeSuggestionClient(() => Array.Empty<SuggestionDto>()));
         service.LoadPhoto(CreatePhoto());
         await service.AnalyzeAsync();
 
-        var result = service.Suggest();
+        var result = await service.SuggestAsync(); // Оновлено
 
         Assert.False(result.IsSuccess);
         Assert.Equal(SessionState.ANALYZED, service.Session.State);
@@ -146,11 +157,11 @@ public class DesignServiceTests
     [Fact]
     public async Task Suggest_CatalogUnavailable_Fails_StaysAnalyzed()
     {
-        var service = CreateService(catalog: new FakeCatalog(() => throw new FileNotFoundException("catalog.json")));
+        var service = CreateService(catalogClient: new FakeCatalogClient(() => throw new FileNotFoundException("API недоступне")));
         service.LoadPhoto(CreatePhoto());
         await service.AnalyzeAsync();
 
-        var result = service.Suggest();
+        var result = await service.SuggestAsync(); // Оновлено
 
         Assert.False(result.IsSuccess);
         Assert.Equal(SessionState.ANALYZED, service.Session.State);
@@ -190,7 +201,6 @@ public class DesignServiceTests
     [Fact]
     public async Task AC24_Save_GalleryRejects_ReturnsItsMessage_StaysItemPlaced()
     {
-        // Відмова API (напр., 413 або 429) приходить із текстом сервера, і користувач бачить саме його.
         var gallery = new RecordingGalleryClient { SaveFailureMessage = "Максимальний розмір — 5 МБ." };
         var service = await CreatePlacedAsync(gallery);
 
@@ -205,7 +215,6 @@ public class DesignServiceTests
     [Fact]
     public async Task Save_GalleryClientThrows_ReturnsFail_StaysItemPlaced()
     {
-        // E1: збій зв'язку з API — не падіння сторінки, а повідомлення; стан не змінюється.
         var gallery = new RecordingGalleryClient { SaveException = new HttpRequestException("API недоступний") };
         var service = await CreatePlacedAsync(gallery);
 
@@ -222,7 +231,7 @@ public class DesignServiceTests
     {
         var gallery = new RecordingGalleryClient();
         var service = CreateService(gallery: gallery);
-        service.LoadPhoto(CreatePhoto());   // PHOTO_LOADED
+        service.LoadPhoto(CreatePhoto());
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.SaveAsync(new byte[] { 1 }));
 

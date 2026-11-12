@@ -81,7 +81,7 @@
             @* 3. Пропозиції (UC-03) *@
             <section class="step">
                 <h2>3. Пропозиції</h2>
-                <button class="btn" @onclick="Suggest" disabled="@(Session.State != SessionState.ANALYZED)">
+                <button class="btn" @onclick="SuggestAsync" disabled="@(Session.State != SessionState.ANALYZED)">
                     Підібрати предмети
                 </button>
 
@@ -197,9 +197,9 @@
             ShowError(outcome.Message);
     }
 
-    private void Suggest()
+    private async Task SuggestAsync()
     {
-        var result = Design.Suggest();
+        var result = await Design.SuggestAsync();
         if (result.IsSuccess)
             ShowInfo("Оберіть предмет зі списку.");
         else

@@ -26,7 +26,7 @@ public class DesignServicePlacementTests
         var service = new DesignService(new StubPhotoAnalyzer(), new StubCatalog(), new RecordingGalleryClient());
         service.LoadPhoto(CreatePhoto());
         await service.AnalyzeAsync();
-        service.Suggest();
+        await service.SuggestAsync();
         return service;
     }
 

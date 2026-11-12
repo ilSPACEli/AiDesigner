@@ -49,6 +49,9 @@ builder.Services.AddHttpClient<IGalleryClient, GalleryClient>((services, client)
     client.BaseAddress = new Uri(baseUrl);
 });
 
+builder.Services.AddSingleton<ICatalogClient, CatalogClient>();
+builder.Services.AddSingleton<ISuggestionClient, SuggestionClient>();
+
 var app = builder.Build();
 
 // Підготовка БД під час старту: міграції — лише в Development, каталог — див. DatabaseInitializer.
