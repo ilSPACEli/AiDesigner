@@ -3,25 +3,21 @@ using AiDesigner.Api.Dto;
 
 namespace AiDesigner.Clients;
 
-public class CatalogClient : ICatalogClient
+public sealed class CatalogClient : ICatalogClient
 {
-    private readonly HttpClient _httpClient;
+    public const string CatalogPath = "api/catalog";
 
-    public CatalogClient(HttpClient httpClient)
+    private readonly HttpClient _http;
+
+    public CatalogClient(HttpClient http)
     {
-        _httpClient = httpClient;
+        ArgumentNullException.ThrowIfNull(http);
+        _http = http;
     }
 
-    public async Task<IEnumerable<CatalogItemDto>> GetCatalogAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<CatalogItemDto>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        var response = await _httpClient.GetAsync("/api/catalog", cancellationToken);
-        
-        if (!response.IsSuccessStatusCode)
-        {
-            return Array.Empty<CatalogItemDto>();
-        }
-
-        var items = await response.Content.ReadFromJsonAsync<IEnumerable<CatalogItemDto>>(cancellationToken: cancellationToken);
-        return items ?? Array.Empty<CatalogItemDto>();
+        var items = await _http.GetFromJsonAsync<List<CatalogItemDto>>(CatalogPath, cancellationToken);
+        return items ?? new List<CatalogItemDto>();
     }
 }

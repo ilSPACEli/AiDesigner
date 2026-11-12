@@ -1,27 +1,37 @@
+using System.Net;
 using System.Net.Http.Json;
 using AiDesigner.Api.Dto;
 
 namespace AiDesigner.Clients;
 
-public class SuggestionClient : ISuggestionClient
-{ 
-    private readonly HttpClient _httpClient;
+public sealed class SuggestionClient : ISuggestionClient
+{
+    public const string SuggestionsPath = "api/suggestions";
 
-    public SuggestionClient(HttpClient httpClient)
+    private readonly HttpClient _http;
+
+    public SuggestionClient(HttpClient http)
     {
-        _httpClient = httpClient;
+        ArgumentNullException.ThrowIfNull(http);
+        _http = http;
     }
 
-    public async Task<IEnumerable<SuggestionDto>> GetSuggestionsAsync(AnalysisRequestDto request, CancellationToken cancellationToken = default)
-    {
-        var response = await _httpClient.PostAsJsonAsync("/api/suggestions", request, cancellationToken);
-        
-        if (!response.IsSuccessStatusCode)
-        {
-            return Array.Empty<SuggestionDto>();
-        }
 
-        var suggestions = await response.Content.ReadFromJsonAsync<IEnumerable<SuggestionDto>>(cancellationToken: cancellationToken);
-        return suggestions ?? Array.Empty<SuggestionDto>();
+    public async Task<SuggestionClientResult> SuggestAsync(AnalysisRequestDto request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        using var response = await _http.PostAsJsonAsync(SuggestionsPath, request, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.UnprocessableEntity)
+            return SuggestionClientResult.NoSuitableItems();
+
+        if (!response.IsSuccessStatusCode)
+            return SuggestionClientResult.Unavailable();
+
+        var suggestions = await response.Content.ReadFromJsonAsync<List<SuggestionDto>>(cancellationToken);
+        return suggestions is { Count: > 0 }
+            ? SuggestionClientResult.Success(suggestions)
+            : SuggestionClientResult.Unavailable();
     }
 }

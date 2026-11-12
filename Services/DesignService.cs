@@ -9,15 +9,13 @@ public class DesignService
     public const int SuggestionCount = 4;
 
     private readonly IPhotoAnalyzer _analyzer;
-    private readonly ICatalogClient _catalogClient;
-    private readonly ISuggestionClient _suggestionClient;
+    private readonly ISuggestionClient _suggestions;
     private readonly IGalleryClient _gallery;
 
-    public DesignService(IPhotoAnalyzer analyzer, ICatalogClient catalogClient, ISuggestionClient suggestionClient, IGalleryClient gallery)
+    public DesignService(IPhotoAnalyzer analyzer, ISuggestionClient suggestions, IGalleryClient gallery)
     {
         _analyzer = analyzer;
-        _catalogClient = catalogClient;
-        _suggestionClient = suggestionClient;
+        _suggestions = suggestions;
         _gallery = gallery;
     }
 
@@ -215,61 +213,40 @@ public class DesignService
         }
     }
 
-    // Змінено на асинхронний метод, оскільки клієнт працює через HTTP
-    public async Task<ServiceResult> SuggestAsync(CancellationToken ct = default)
-{
-    var analysis = Session.Analysis
-        ?? throw new InvalidOperationException("Спочатку виконайте аналіз фото.");
 
-    IReadOnlyList<SuggestionDto> suggestedDtos;
-    IEnumerable<CatalogItemDto> allItems;
+    public const string CatalogUnavailableMessage = "Каталог предметів недоступний. Спробуйте пізніше.";
 
-    try
+    public const string NoSuitableItemsMessage = "Придатних предметів немає. Спробуйте надати інше фото.";
+
+    public async Task<ServiceResult> SuggestAsync(CancellationToken cancellationToken = default)
     {
-        var requestDto = new AnalysisRequestDto
+        var analysis = Session.Analysis
+            ?? throw new InvalidOperationException("Спочатку виконайте аналіз фото.");
+
+        IReadOnlyList<Suggestion> suggestions;
+        try
         {
-            LightLevel = analysis.Lighting.ToString(),
-            // Беремо Hex-коди з домінантних кольорів
-            DominantColors = analysis.Colors.Select(c => c.Hex).ToList() 
-        };
+            var response = await _suggestions.SuggestAsync(AnalysisRequestDto.From(analysis), cancellationToken);
 
-        suggestedDtos = (await _suggestionClient.GetSuggestionsAsync(requestDto, ct)).Take(SuggestionCount).ToList();
-        allItems = await _catalogClient.GetCatalogAsync(ct);
-    }
-    catch (Exception)
-    {
-        return ServiceResult.Fail("Каталог предметів недоступний. Спробуйте пізніше.");
-    }
+            if (response.Status == SuggestionClientStatus.NoSuitableItems)
+                return ServiceResult.Fail(NoSuitableItemsMessage);
+            if (response.Status != SuggestionClientStatus.Success)
+                return ServiceResult.Fail(CatalogUnavailableMessage);
 
-    if (suggestedDtos.Count == 0)
-        return ServiceResult.Fail("Придатних предметів немає. Спробуйте надати інше фото.");
-
-    var domainSuggestions = new List<Suggestion>();
-    int rank = 1;
-
-    foreach (var dto in suggestedDtos)
-    {
-        var itemDto = allItems.FirstOrDefault(i => i.Id == dto.Id);
-        if (itemDto != null)
-        {
-            var catalogItem = new CatalogItem 
-            { 
-                Id = itemDto.Id, 
-                Type = Enum.TryParse<ItemType>(itemDto.Type, true, out var t) ? t : default,
-            };
-
-            domainSuggestions.Add(new Suggestion 
-            { 
-                Item = catalogItem,
-                Rank = rank++,
-                Reason = "Підібрано за допомогою API" 
-            });
+            suggestions = response.Suggestions
+                .OrderBy(s => s.Rank)
+                .Take(SuggestionCount)
+                .Select(s => s.ToModel())
+                .ToList();
         }
-    }
+        catch (Exception)
+        {
+            return ServiceResult.Fail(CatalogUnavailableMessage);
+        }
 
-    Session.ShowSuggestions(domainSuggestions);
-    return ServiceResult.Ok();
-}
+        Session.ShowSuggestions(suggestions);
+        return ServiceResult.Ok();
+    }
 
     public void PlaceItem(CatalogItem item, int x, int y) =>
         Session.PlaceItem(new Placement(item, x, y));

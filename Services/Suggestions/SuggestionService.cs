@@ -1,24 +1,49 @@
-using AiDesigner.Api.Dto;
+using System.Data.Common;
 using AiDesigner.Models;
 using AiDesigner.Repositories;
 
 namespace AiDesigner.Services.Suggestions;
 
-public class SuggestionService
+// Добір пропозицій (UC-03): предмети — з репозиторію (БД), правила R1–R5 — SuggestionRules.
+public sealed class SuggestionService
 {
-    private readonly ICatalogRepository _repository;
+    // Скільки пропозицій повертає API (FR-06: 3–4).
+    public const int SuggestionCount = 4;
 
-    public SuggestionService(ICatalogRepository repository)
+    private readonly ICatalogRepository _repository;
+    private readonly ILogger<SuggestionService> _logger;
+
+    public SuggestionService(ICatalogRepository repository, ILogger<SuggestionService> logger)
     {
+        ArgumentNullException.ThrowIfNull(repository);
+        ArgumentNullException.ThrowIfNull(logger);
         _repository = repository;
+        _logger = logger;
     }
 
-    public async Task<IEnumerable<CatalogItem>> GetSuggestionsAsync(AnalysisRequestDto request, CancellationToken cancellationToken = default)
+    public async Task<SuggestionOutcome> SuggestAsync(AnalysisResult analysis, CancellationToken cancellationToken = default)
     {
-        var allItems = await _repository.GetAllAsync(cancellationToken);
+        ArgumentNullException.ThrowIfNull(analysis);
 
-        var suggestedItems = allItems;
+        IReadOnlyList<CatalogItem> items;
+        try
+        {
+            items = await _repository.GetAllAsync(cancellationToken);
+        }
+        catch (DbException ex)
+        {
+            // БД не відповідає — це «каталог недоступний», а не збій програми.
+            _logger.LogError(ex, "Каталог недоступний: не вдалося прочитати CatalogItems.");
+            return SuggestionOutcome.CatalogUnavailable();
+        }
 
-        return suggestedItems;
+        // Порожня таблиця — каталог не синхронізовано (зламаний catalog.json, #48): теж «недоступний».
+        if (items.Count == 0)
+            return SuggestionOutcome.CatalogUnavailable();
+
+        var suggestions = new SuggestionRules(items).Select(analysis, SuggestionCount);
+        return suggestions.Count == 0
+            ? SuggestionOutcome.NoSuitableItems()
+            : SuggestionOutcome.Ok(suggestions);
     }
 }

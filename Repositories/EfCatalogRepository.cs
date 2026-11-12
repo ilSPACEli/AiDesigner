@@ -4,23 +4,24 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AiDesigner.Repositories;
 
-public class EfCatalogRepository : ICatalogRepository
+// Каталог із PostgreSQL (таблиця CatalogItems).
+public sealed class EfCatalogRepository : ICatalogRepository
 {
-    private readonly AppDbContext _context;
+    private readonly AppDbContext _db;
 
-    public EfCatalogRepository(AppDbContext context)
+    public EfCatalogRepository(AppDbContext db)
     {
-        _context = context;
+        ArgumentNullException.ThrowIfNull(db);
+        _db = db;
     }
 
-    public async Task<IEnumerable<CatalogItem>> GetAllAsync(CancellationToken cancellationToken = default)
-    {
-        return await _context.CatalogItems.ToListAsync(cancellationToken);
-    }
+    // AsNoTracking: каталог лише читаємо, відстежувати зміни не потрібно.
+    public async Task<IReadOnlyList<CatalogItem>> GetAllAsync(CancellationToken cancellationToken = default) =>
+        await _db.CatalogItems.AsNoTracking()
+            .OrderBy(i => i.Id)
+            .ToListAsync(cancellationToken);
 
-    public async Task<CatalogItem?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
-    {
-        return await _context.CatalogItems
+    public Task<CatalogItem?> GetByIdAsync(string id, CancellationToken cancellationToken = default) =>
+        _db.CatalogItems.AsNoTracking()
             .FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
-    }
 }

@@ -4,5 +4,5 @@ namespace AiDesigner.Clients;
 
 public interface ICatalogClient
 {
-    Task<IEnumerable<CatalogItemDto>> GetCatalogAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<CatalogItemDto>> GetAllAsync(CancellationToken cancellationToken = default);
 }

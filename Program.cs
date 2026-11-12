@@ -7,6 +7,7 @@ using AiDesigner.Repositories;
 using AiDesigner.Services;
 using AiDesigner.Services.Analysis;
 using AiDesigner.Services.Results;
+using AiDesigner.Services.Suggestions;
 using DotNetEnv;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,9 +21,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// Сервіси v1.0. Заглушки замінюються справжніми реалізаціями в UC-02…UC-04.
 builder.Services.AddSingleton<IPhotoAnalyzer, PhotoAnalyzer>();   // UC-02
-builder.Services.AddSingleton<ICatalog, Catalog>();
 builder.Services.AddSingleton<IResultStorage, FileResultStorage>();
 
 builder.Services.AddScoped<DesignService>();
@@ -35,22 +34,16 @@ if (string.IsNullOrWhiteSpace(connectionString))
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
 
+builder.Services.AddScoped<ICatalogRepository, EfCatalogRepository>();
+builder.Services.AddScoped<SuggestionService>();
+
 // Галерея (US-1): налаштування Gallery:*, репозиторій, сервіс, обмеження частоти збережень
 builder.Services.AddGalleryOptions(builder.Configuration);
 builder.Services.AddScoped<IResultRepository, EfResultRepository>();
 builder.Services.AddScoped<ResultService>();
 builder.Services.AddGalleryRateLimiting();
 
-builder.Services.AddHttpClient<IGalleryClient, GalleryClient>((services, client) =>
-{
-    var baseUrl = services.GetRequiredService<IConfiguration>()["ApiBaseUrl"];
-    if (string.IsNullOrWhiteSpace(baseUrl))
-        throw new InvalidOperationException("Не задано ApiBaseUrl. Створіть .env за зразком .env.example.");
-    client.BaseAddress = new Uri(baseUrl);
-});
-
-builder.Services.AddSingleton<ICatalogClient, CatalogClient>();
-builder.Services.AddSingleton<ISuggestionClient, SuggestionClient>();
+builder.Services.AddApiClients();
 
 var app = builder.Build();
 
@@ -88,6 +81,8 @@ app.UseRateLimiter();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
+app.MapCatalogEndpoints();
+app.MapSuggestionEndpoints();
 app.MapResultEndpoints();
 
 app.Run();

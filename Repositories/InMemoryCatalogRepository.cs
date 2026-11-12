@@ -2,23 +2,20 @@ using AiDesigner.Models;
 
 namespace AiDesigner.Repositories;
 
-public class InMemoryCatalogRepository : ICatalogRepository
+// Каталог у пам'яті — для тестів і роботи без БД.
+public sealed class InMemoryCatalogRepository : ICatalogRepository
 {
-    private readonly List<CatalogItem> _items;
+    private readonly IReadOnlyList<CatalogItem> _items;
 
     public InMemoryCatalogRepository(IEnumerable<CatalogItem> items)
     {
-        _items = items.ToList();
+        ArgumentNullException.ThrowIfNull(items);
+        _items = items.OrderBy(i => i.Id, StringComparer.Ordinal).ToList();
     }
 
-    public Task<IEnumerable<CatalogItem>> GetAllAsync(CancellationToken cancellationToken = default)
-    {
-        return Task.FromResult<IEnumerable<CatalogItem>>(_items);
-    }
+    public Task<IReadOnlyList<CatalogItem>> GetAllAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult(_items);
 
-    public Task<CatalogItem?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
-    {
-        var item = _items.FirstOrDefault(i => i.Id == id);
-        return Task.FromResult(item);
-    }
+    public Task<CatalogItem?> GetByIdAsync(string id, CancellationToken cancellationToken = default) =>
+        Task.FromResult(_items.FirstOrDefault(i => i.Id == id));
 }
