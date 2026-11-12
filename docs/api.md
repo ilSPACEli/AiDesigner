@@ -97,7 +97,31 @@
 - **Частота рахується за IP-адресою клієнта.** Збереження зі сторінки йде через `GalleryClient` на той самий сервер (`127.0.0.1`), тому для користувачів інтерфейсу ліміт спільний; перевіряти AC-24 слід прямими викликами API.
 - **Антифорджері вимкнено на `POST /api/results`** (`DisableAntiforgery`): ендпоінт призначений для API-клієнтів без форм і cookie; для Blazor антифорджері лишається.
 
-### 1.3 Налаштування (`.env`)
+### 1.3 `GET /api/catalog` і `POST /api/suggestions`
+
+`GET /api/catalog` повертає всі предмети з таблиці `CatalogItems` (робоча копія `catalog.json`, [data.md](data.md#33-синхронізація-каталогу)), упорядковані за `id`.
+
+`POST /api/suggestions` приймає результат аналізу (`AnalysisRequestDto`, без фото — NFR-04) і повертає 3–4 пропозиції за правилами R1–R5 (`SuggestionRules`). Перевірка запиту:
+
+| Поле | Перевірка |
+|---|---|
+| `lighting` | точно `DARK`, `MODERATE` або `BRIGHT` |
+| `colors` | від 3 до 5 елементів |
+| `colors[i].hex` | `#RRGGBB` |
+| `colors[i].hue` | ціле 0–359 |
+| `colors[i].share` | 0–100 (відсоток) |
+
+`partialMatch: true` — предмет додано лише за освітленістю (R5, бал 0); `reason` тоді — «Часткова відповідність за кольором: предмет підходить лише за освітленістю.»
+
+| Статус | `title` | `detail` |
+|---|---|---|
+| `400` | Некоректний запит | «Очікується JSON із полями colors і lighting.» або назва поля з причиною, напр. «colors[2].hex: очікується формат #RRGGBB.» |
+| `422` | Придатних предметів немає | «Для цього освітлення в каталозі немає придатних предметів.» |
+| `503` | Каталог недоступний | «Каталог предметів недоступний. Спробуйте пізніше.» — БД не відповідає або таблиця `CatalogItems` порожня (каталог не синхронізовано) |
+
+Клієнти: `SuggestionClient` повертає `SuggestionClientResult` зі статусом `Success` / `NoSuitableItems` (422) / `Unavailable` (503 і будь-яка інша відмова); помилки мережі не ковтає — їх обробляє `DesignService`. `CatalogClient.GetAllAsync()` — увесь каталог.
+
+### 1.4 Налаштування (`.env`)
 
 | Ключ | Приклад | Призначення |
 |---|---|---|
@@ -111,7 +135,7 @@
 Значення `Gallery__*`, не більші за 0, зупиняють застосунок під час старту (`OptionsValidationException`).
 
 
-## 2. Внутрішні сервіси v1.0 (без змін)
+## 2. Внутрішні сервіси
 
 ### 2.1 `DesignService` — оркестратор сценарію
 
@@ -123,7 +147,7 @@
 | `LoadPhotoAsync(string fileName, byte[] content, Func<byte[], Task> showOnCanvas)` | UC-01 | перевірка за вмістом → показ на полотні → `PHOTO_LOADED` | `ServiceResult`; при відмові сесія не змінюється (A2) |
 | `LoadPhoto(Photo photo)` | UC-01 | запис уже прочитаного фото в сесію | `ServiceResult` |
 | `AnalyzeAsync(CancellationToken)` | UC-02 | блокує заміну фото, викликає аналізатор із тайм-аутом 30 с | `AnalysisOutcome`: `Success` → `ANALYZED`; `InsufficientData` (A1) / `Error` (E1) → `PHOTO_LOADED` |
-| `Suggest()` | UC-03 | добір 4 пропозицій із каталогу | `ServiceResult`; немає предметів (R5) або каталог недоступний (E1) → стан не змінюється |
+| `SuggestAsync(CancellationToken)` | UC-03 | добір до 4 пропозицій через `ISuggestionClient` (`POST /api/suggestions`); на сервер іде лише результат аналізу | `ServiceResult`; `422` → «Придатних предметів немає…» (R5), `503`, інша відмова чи помилка мережі → «Каталог предметів недоступний…» (E1); стан не змінюється |
 | `PlaceItemAtCenter(CatalogItem item, int itemWidth, int itemHeight)` | UC-04 | початкове положення по центру фото (AC-08) | `PlacementValues(X, Y, Scale)`; стан `ITEM_PLACED` |
 | `UpdatePlacement(int x, int y, decimal scale, int itemWidth, int itemHeight)` | UC-04 | нове положення з обмеженням межами фото (AC-09) | `PlacementValues` — фактично застосовані значення |
 | `SaveAsync(byte[] pngBytes, CancellationToken)` | UC-04 | збереження PNG у галерею через `IGalleryClient` (FR-11, US-1); `catalogItemId` береться з `Session.Placement` | `ServiceResult`; успіх → `SAVED`, помилка → `ITEM_PLACED` (E1); відмова API (`413`, `429`, `400`) повертає текст `detail` із ProblemDetails |
@@ -138,10 +162,20 @@ public interface IPhotoAnalyzer   // UC-02, реалізація — PhotoAnalyz
     Task<AnalysisOutcome> AnalyzeAsync(Photo photo, CancellationToken cancellationToken = default);
 }
 
-public interface ICatalog         // UC-03, реалізація — Catalog
+public interface ISuggestionClient   // UC-03, реалізація — SuggestionClient (HTTP до власного API)
 {
-    IReadOnlyList<CatalogItem> Items { get; }
-    IReadOnlyList<Suggestion> Select(AnalysisResult analysis, int count);
+    Task<SuggestionClientResult> SuggestAsync(AnalysisRequestDto request, CancellationToken cancellationToken = default);
+}
+
+public interface ICatalogClient      // GET /api/catalog, реалізація — CatalogClient
+{
+    Task<IReadOnlyList<CatalogItemDto>> GetAllAsync(CancellationToken cancellationToken = default);
+}
+
+public interface ICatalogRepository  // таблиця CatalogItems; реалізації — EfCatalogRepository, InMemoryCatalogRepository (тести)
+{
+    Task<IReadOnlyList<CatalogItem>> GetAllAsync(CancellationToken cancellationToken = default);   // упорядковано за Id
+    Task<CatalogItem?> GetByIdAsync(string id, CancellationToken cancellationToken = default);
 }
 
 public interface IGalleryClient   // US-1, реалізація — GalleryClient (HTTP до власного API)
@@ -158,7 +192,7 @@ public interface IResultStorage   // v1: з S1 (#44) DesignService його не
 ```
 
 - `AnalysisOutcome` — `Success(result)`, `InsufficientData()` або `Error(message)`; аналізатор не кидає винятків назовні для очікуваних випадків.
-- `Catalog.Select` повертає порожній список, якщо придатних предметів немає; `CatalogException` — якщо каталог не завантажується.
+- `SuggestionService.SuggestAsync` (сервер) повертає `SuggestionOutcome`: `Ok`, `NoSuitableItems` або `CatalogUnavailable` — очікувані відмови значенням, а не винятком. Правила R1–R5 — `SuggestionRules.Select` (перенесено з v1 `Catalog.Select` без змін логіки).
 - Заміна реалізації — один рядок у `Program.cs`; заглушки — `Services/Stubs/`.
 
 ### 2.3 Полотно: JS Interop
@@ -183,4 +217,4 @@ public interface IResultStorage   // v1: з S1 (#44) DesignService його не
 - **Результат:** рядок таблиці `SavedResults` (PNG і мініатюра JPEG), див. [data.md](data.md#31-таблиці) і [3.5](data.md#35-збереження-результатів-r7-і-ліміти-us-1-44). У сесії лишається `ResultImage`: `FileName` = `result-<id>.png` (умовна назва для завантаження), `Format`, `CreatedAt`.
 - **Фото користувача** зберігається лише в пам'яті (`Photo.Content`) і на диск не пишеться (NFR-04).
 
-> У S1 `ICatalog` замінюється на `SuggestionService` / `ICatalogRepository` (задача 2); `IResultStorage` уже замінено на `ResultService` / `IResultRepository` / `GalleryClient` (задача 3, #44). Цей розділ оновлюється разом із кодом.
+> У S1 `ICatalog` / `Catalog` замінено на `SuggestionClient` → `POST /api/suggestions` → `SuggestionService` → `ICatalogRepository` (задача 2, #43); `IResultStorage` — на `ResultService` / `IResultRepository` / `GalleryClient` (задача 3, #44). Заглушка добору для тестів — `Services/Stubs/StubSuggestionClient`.

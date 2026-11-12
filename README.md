@@ -33,7 +33,7 @@
 
    `.env` містить пароль і **не комітиться** (є в `.gitignore`). Змінні, задані в системі, мають пріоритет над `.env`.
 
-   Збереження в галерею сторінка виконує через власний HTTP API за адресою `ApiBaseUrl`. Поки що працюємо по HTTP: у `.env` має бути `ApiBaseUrl=http://localhost:5245/` (так у `.env.example`), тобто порт профілю `http`, який запускає `dotnet run`. Якщо запускаєте іншим профілем чи портом, змініть адресу. Інші налаштування галереї — `Gallery__MaxItems`, `Gallery__MaxImageBytes`, `Gallery__SavesPerMinute`: значення не більші за 0 зупиняють застосунок під час старту. Усі ключі — у [docs/api.md](docs/api.md#13-налаштування-env).
+   Збереження в галерею сторінка виконує через власний HTTP API за адресою `ApiBaseUrl`. Поки що працюємо по HTTP: у `.env` має бути `ApiBaseUrl=http://localhost:5245/` (так у `.env.example`), тобто порт профілю `http`, який запускає `dotnet run`. Якщо запускаєте іншим профілем чи портом, змініть адресу. Інші налаштування галереї — `Gallery__MaxItems`, `Gallery__MaxImageBytes`, `Gallery__SavesPerMinute`: значення не більші за 0 зупиняють застосунок під час старту. Усі ключі — у [docs/api.md](docs/api.md#14-налаштування-env).
 
 3. Запустити:
 
@@ -83,16 +83,17 @@ dotnet test
 | Папка | Що всередині |
 |-------|--------------|
 | `Models/` | предметні класи за діаграмою класів; `DesignSession` — State Machine сесії |
-| `Services/` | `DesignService` (оркестратор), інтерфейси `IPhotoAnalyzer`, `ICatalog` та реалізації |
+| `Services/` | `DesignService` (оркестратор); заглушки для тестів — `Stubs/` |
+| `Services/Suggestions/` | добір пропозицій (UC-03): правила R1–R5 `SuggestionRules`, `SuggestionService` (предмети з БД) |
 | `Services/Results/` | галерея (US-1): `ResultService`, правило R7 `GalleryRetentionPolicy`, налаштування `GalleryOptions`; допоміжні класи сторінок: `GalleryItemView`, `GalleryErrorMessages`, `BrowserTimeZone`, `DesignDownloadName` |
-| `Repositories/` | сховище робіт: `IResultRepository`, реалізації `InMemory…` (тести) і `Ef…` (PostgreSQL) |
-| `Api/` | HTTP API галереї (`/api/results`), ProblemDetails, обмеження частоти збережень |
-| `Clients/` | `GalleryClient` — типізований `HttpClient` до власного API |
+| `Repositories/` | доступ до даних: `IResultRepository` (роботи галереї) і `ICatalogRepository` (каталог), реалізації `InMemory…` (тести) і `Ef…` (PostgreSQL) |
+| `Api/` | HTTP API: каталог (`/api/catalog`), добір (`/api/suggestions`), галерея (`/api/results`); DTO, ProblemDetails, обмеження частоти збережень |
+| `Clients/` | типізовані `HttpClient` до власного API: `GalleryClient`, `CatalogClient`, `SuggestionClient` |
 | `Services/Analysis/` | аналіз фото (UC-02): k-means, освітленість |
 | `Data/` | `CatalogLoader` — читання й перевірка каталогу; `AppDbContext`, `CatalogSeeder`, міграції `Migrations/` |
 | `Components/` | сторінки `Pages/Home.razor` («Дизайн») і `Pages/Gallery.razor` («Галерея»), макет `Layout/MainLayout.razor`, полотно `Shared/PhotoCanvas.razor` |
 | `wwwroot/` | `app.css` (єдині стилі), `js/photoCanvas.js` (Fabric.js), `js/download.js`, `js/browserInfo.js`, каталог `data/catalog.json`, `images/catalog/` |
-| `tests/AiDesigner.Tests/` | xUnit-тести (397) |
+| `tests/AiDesigner.Tests/` | xUnit-тести (621) |
 | `docs/`, `model/` | документація й UML-моделі |
 
 ## Команда
