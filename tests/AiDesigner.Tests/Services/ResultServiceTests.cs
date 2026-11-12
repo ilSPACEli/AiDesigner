@@ -15,7 +15,7 @@ namespace AiDesigner.Tests.Services;
 // AC-23 (R7 у зв'язці з репозиторієм), AC-24 (розмір, некоректні дані).
 public class ResultServiceTests
 {
-    // Предмет із StubCatalog: Id "stub-01", назва «Сірий диван»
+    // Предмет заглушки: Id "stub-01", назва «Сірий диван»
     private const string ItemId = "stub-01";
     private const string ItemName = "Сірий диван";
 
@@ -23,7 +23,7 @@ public class ResultServiceTests
 
     private static ResultService CreateService(IResultRepository? repository = null, GalleryOptions? options = null) =>
         new(repository ?? new InMemoryResultRepository(),
-            new StubCatalog(),
+            new InMemoryCatalogRepository(StubSuggestionClient.Items),
             options ?? new GalleryOptions(),
             NullLogger<ResultService>.Instance);
 

@@ -1,13 +1,14 @@
 using AiDesigner.Data;
 using AiDesigner.Models;
 using AiDesigner.Services;
+using AiDesigner.Services.Suggestions;
 using AiDesigner.Services.Analysis;
 using AiDesigner.Tests.Data;
 
 namespace AiDesigner.Tests.Services;
 
 // Правила добору R1–R5 (docs/requirements.md, розділ 4) і AC-06 для UC-03
-public class CatalogRulesTests
+public class SuggestionRulesTests
 {
     private static readonly LightingLevel[] AllLevels = { LightingLevel.DARK, LightingLevel.MODERATE, LightingLevel.BRIGHT };
 
@@ -41,7 +42,7 @@ public class CatalogRulesTests
     public void R1_Analogous_WithinThirtyDegrees()
     {
         // Палітра — червоний (0°). Помаранчевий 30° — ще аналогова гармонія, 32° — уже ні.
-        var catalog = new Catalog(new[]
+        var catalog = new SuggestionRules(new[]
         {
             Item("in", ItemType.SOFA, "#FF7F00"),    // ≈ 30°
             Item("out", ItemType.LAMP, "#FF8800")    // ≈ 32°
@@ -58,7 +59,7 @@ public class CatalogRulesTests
     public void R1_Complementary_OppositeHueWithinThirtyDegrees()
     {
         // Протилежний до червоного (0°) — 180°. Бірюзовий 180° і 200° — комплементарні, 220° — ні.
-        var catalog = new Catalog(new[]
+        var catalog = new SuggestionRules(new[]
         {
             Item("cyan", ItemType.RUG, "#00FFFF"),     // 180°
             Item("sky", ItemType.LAMP, "#00AAFF"),     // 200°
@@ -77,7 +78,7 @@ public class CatalogRulesTests
     [InlineData("#FF2B00", "#FF002B")]
     public void R1_HueDistance_WrapsAround360(string roomHex, string itemHex)
     {
-        var catalog = new Catalog(new[] { Item("item", ItemType.SOFA, itemHex) });
+        var catalog = new SuggestionRules(new[] { Item("item", ItemType.SOFA, itemHex) });
 
         var result = catalog.Select(Palette(LightingLevel.MODERATE, (roomHex, 100)), 4);
 
@@ -90,7 +91,7 @@ public class CatalogRulesTests
     {
         // Сірий (Hue = 0) — найбільший колір, але відтінку не має: червоний предмет НЕ отримує «гармонію з червоним».
         // Гармонія рахується від найбільшого ненейтрального кольору — синього.
-        var catalog = new Catalog(new[]
+        var catalog = new SuggestionRules(new[]
         {
             Item("red", ItemType.SOFA, "#FF0000"),
             Item("blue", ItemType.LAMP, "#0000FF"),
@@ -107,7 +108,7 @@ public class CatalogRulesTests
     [Fact]
     public void R1_AllNeutralPalette_OnlyNeutralItemsMatchByColor()
     {
-        var catalog = new Catalog(new[]
+        var catalog = new SuggestionRules(new[]
         {
             Item("gray", ItemType.SOFA, "#808080"),
             Item("red", ItemType.TABLE, "#FF0000")
@@ -116,7 +117,7 @@ public class CatalogRulesTests
         var result = catalog.Select(Palette(LightingLevel.MODERATE, ("#808080", 60), ("#D8D2C8", 40)), 4);
 
         Assert.Equal(1, Find(result, "gray").Score);
-        Assert.Equal(Catalog.PartialMatchReason, Find(result, "red").Reason);
+        Assert.Equal(SuggestionRules.PartialMatchReason, Find(result, "red").Reason);
     }
 
     // ---------- R2: освітленість ----------
@@ -125,7 +126,7 @@ public class CatalogRulesTests
     public void R2_ItemWithWrongLighting_IsNeverSuggested_EvenByR5()
     {
         // Червоний предмет ідеально пасує за кольором, але не за освітленістю.
-        var catalog = new Catalog(new[]
+        var catalog = new SuggestionRules(new[]
         {
             Item("dark-only", ItemType.SOFA, "#FF0000", LightingLevel.DARK),
             Item("blue", ItemType.LAMP, "#0000FF"),
@@ -142,7 +143,7 @@ public class CatalogRulesTests
     [Fact]
     public void R3_ThirdItemOfSameType_IsSkipped_NextTypeIsTaken()
     {
-        var catalog = new Catalog(new[]
+        var catalog = new SuggestionRules(new[]
         {
             Item("t1", ItemType.TABLE, "#FF0000"),
             Item("t2", ItemType.TABLE, "#FF0011"),
@@ -161,7 +162,7 @@ public class CatalogRulesTests
     public void R3_DifferentTypesFirst_WhenEnoughTypes()
     {
         // Два дивани йдуть першими за id, але є ще три інші типи — другий диван не потрібен (CR-03).
-        var catalog = new Catalog(new[]
+        var catalog = new SuggestionRules(new[]
         {
             Item("s1", ItemType.SOFA, "#FF0000"),
             Item("s2", ItemType.SOFA, "#FF0011"),
@@ -182,7 +183,7 @@ public class CatalogRulesTests
     {
         // Типів лише два: другий диван добирається другим проходом.
         // У переліку вищий бал — вище, навіть якщо предмет добрано пізніше.
-        var catalog = new Catalog(new[]
+        var catalog = new SuggestionRules(new[]
         {
             Item("a-sofa", ItemType.SOFA, "#FF0000"),     // 2
             Item("b-sofa", ItemType.SOFA, "#FF0011"),     // 2
@@ -200,7 +201,7 @@ public class CatalogRulesTests
     [Fact]
     public void R4_HigherScoreFirst_TiesById_RanksFromOne()
     {
-        var catalog = new Catalog(new[]
+        var catalog = new SuggestionRules(new[]
         {
             Item("b-gray", ItemType.SOFA, "#808080"),     // 1 — нейтральний
             Item("c-red", ItemType.TABLE, "#FF0000"),     // 2
@@ -220,7 +221,7 @@ public class CatalogRulesTests
     public void R5_FewerThanThreeColorMatches_AreFilledWithMark()
     {
         // За кольором пасує лише один предмет — перелік доповнюється за R2 з позначкою.
-        var catalog = new Catalog(new[]
+        var catalog = new SuggestionRules(new[]
         {
             Item("red", ItemType.SOFA, "#FF0000"),
             Item("blue", ItemType.LAMP, "#0000FF"),
@@ -235,7 +236,7 @@ public class CatalogRulesTests
         Assert.All(result.Skip(1), s =>
         {
             Assert.Equal(0, s.Score);
-            Assert.Equal(Catalog.PartialMatchReason, s.Reason);
+            Assert.Equal(SuggestionRules.PartialMatchReason, s.Reason);
         });
     }
 
@@ -244,7 +245,7 @@ public class CatalogRulesTests
     {
         // Жодного предмета для яскравого приміщення — порожній перелік;
         // повідомлення «придатних предметів немає» показує DesignService.
-        var catalog = new Catalog(new[]
+        var catalog = new SuggestionRules(new[]
         {
             Item("a", ItemType.SOFA, "#FF0000", LightingLevel.DARK),
             Item("b", ItemType.LAMP, "#808080", LightingLevel.DARK)
@@ -274,7 +275,7 @@ public class CatalogRulesTests
                 yield return new object[] { name, level, colors };
     }
 
-    private static readonly Catalog RealCatalog = new(
+    private static readonly SuggestionRules RealCatalog = new(
         CatalogLoader.LoadFromFile(Path.Combine(RepoPaths.WebRoot, CatalogLoader.DefaultRelativePath)));
 
     [Theory]
@@ -301,9 +302,9 @@ public class CatalogRulesTests
 
             // R1 або R5 з позначкою
             if (s.Score > 0)
-                Assert.NotEqual(Catalog.PartialMatchReason, s.Reason);
+                Assert.NotEqual(SuggestionRules.PartialMatchReason, s.Reason);
             else
-                Assert.Equal(Catalog.PartialMatchReason, s.Reason);
+                Assert.Equal(SuggestionRules.PartialMatchReason, s.Reason);
         }
 
         // R5 вмикається лише тоді, коли за кольором пасує менше трьох

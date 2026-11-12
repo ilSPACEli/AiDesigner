@@ -1,12 +1,16 @@
-   using AiDesigner.Clients;
+using AiDesigner.Api.Dto;
+using AiDesigner.Clients;
 
-   namespace AiDesigner.Tests.Clients;
+namespace AiDesigner.Tests.Clients;
 
-   internal sealed class FakeSuggestionClient : ISuggestionClient
+// Підробка клієнта добору: відповідає так, як задав тест, і запам'ятовує запити.
+internal sealed class FakeSuggestionClient(Func<AnalysisRequestDto, SuggestionClientResult> respond) : ISuggestionClient
+{
+    public List<AnalysisRequestDto> Requests { get; } = new();
+
+    public Task<SuggestionClientResult> SuggestAsync(AnalysisRequestDto request, CancellationToken cancellationToken = default)
     {
-        private sealed class FakeSuggestionClient(Func<IEnumerable<SuggestionDto>> getSuggestions) : ISuggestionClient
-        {
-            public Task<IEnumerable<SuggestionDto>> GetSuggestionsAsync(AnalysisRequestDto request, CancellationToken cancellationToken = default) =>
-            Task.FromResult(getSuggestions());
-        }
+        Requests.Add(request);
+        return Task.FromResult(respond(request));
     }
+}
