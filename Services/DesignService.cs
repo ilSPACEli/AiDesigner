@@ -239,6 +239,10 @@ public class DesignService
                 .Select(s => s.ToModel())
                 .ToList();
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw; 
+        }
         catch (Exception)
         {
             return ServiceResult.Fail(CatalogUnavailableMessage);

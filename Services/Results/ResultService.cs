@@ -58,12 +58,12 @@ public class ResultService
         if (string.IsNullOrWhiteSpace(catalogItemId))
             return SaveOutcome.BadRequest(NoItemMessage);
 
-        var item = await _catalog.GetByIdAsync(catalogItemId, cancellationToken);
-        if (item is null)
-            return SaveOutcome.BadRequest(UnknownItemMessage);
-
         try
         {
+            var item = await _catalog.GetByIdAsync(catalogItemId, cancellationToken);
+            if (item is null)
+                return SaveOutcome.BadRequest(UnknownItemMessage);
+
             var header = IdentifyPng(pngBytes);
             if (header is null)
                 return SaveOutcome.BadRequest(NotPngMessage);

@@ -200,6 +200,21 @@ public class DesignServiceTests
         Assert.Equal(SessionState.ANALYZED, service.Session.State);
     }
 
+    [Fact]
+    public async Task Suggest_CallerCancels_PropagatesCancellation_StaysAnalyzed()
+    {
+        using var cts = new CancellationTokenSource();
+        var service = await CreateAnalyzedAsync(new FakeSuggestionClient(_ =>
+        {
+            cts.Cancel();
+            throw new OperationCanceledException(cts.Token);
+        }));
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.SuggestAsync(cts.Token));
+
+        Assert.Equal(SessionState.ANALYZED, service.Session.State);
+    }
+
     // ---------- UC-04 / US-1: збереження в галерею через клієнт ----------
 
     [Fact]
