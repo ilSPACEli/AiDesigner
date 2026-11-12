@@ -90,11 +90,11 @@ public class SuggestionServiceTests
         Assert.Equal(SuggestionStatus.CatalogUnavailable, outcome.Status);
     }
 
-    // AC-06 після переходу на БД: каталог із таблиці (синхронізований із catalog.json) дає той самий перелік,
-    // що й правила на catalog.json, як було у v1.
+    // AC-25 (друга частина) і AC-06 після переходу на БД: каталог із таблиці (синхронізований із catalog.json)
+    // дає той самий перелік, що й правила на catalog.json, як у v1.0.0.
     [Theory]
     [MemberData(nameof(Palettes.RoomsAtAllLevels), MemberType = typeof(Palettes))]
-    public async Task AC06_CatalogFromDatabase_GivesSameListAsCatalogJson(string palette, LightingLevel lighting)
+    public async Task AC25_CatalogFromDatabase_GivesSameListAsV1(string palette, LightingLevel lighting)
     {
         var analysis = Palettes.Of(lighting, Palettes.Rooms[palette]);
         var expected = new SuggestionRules(CatalogLoader.LoadFromFile(CatalogPath))
