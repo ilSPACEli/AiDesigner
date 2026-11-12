@@ -1,3 +1,4 @@
+using AiDesigner.Api.Dto;
 using AiDesigner.Clients;
 using AiDesigner.Models;
 
@@ -8,13 +9,13 @@ public class DesignService
     public const int SuggestionCount = 4;
 
     private readonly IPhotoAnalyzer _analyzer;
-    private readonly ICatalog _catalog;
+    private readonly ISuggestionClient _suggestions;
     private readonly IGalleryClient _gallery;
 
-    public DesignService(IPhotoAnalyzer analyzer, ICatalog catalog, IGalleryClient gallery)
+    public DesignService(IPhotoAnalyzer analyzer, ISuggestionClient suggestions, IGalleryClient gallery)
     {
         _analyzer = analyzer;
-        _catalog = catalog;
+        _suggestions = suggestions;
         _gallery = gallery;
     }
 
@@ -212,7 +213,12 @@ public class DesignService
         }
     }
 
-    public ServiceResult Suggest()
+
+    public const string CatalogUnavailableMessage = "Каталог предметів недоступний. Спробуйте пізніше.";
+
+    public const string NoSuitableItemsMessage = "Придатних предметів немає. Спробуйте надати інше фото.";
+
+    public async Task<ServiceResult> SuggestAsync(CancellationToken cancellationToken = default)
     {
         var analysis = Session.Analysis
             ?? throw new InvalidOperationException("Спочатку виконайте аналіз фото.");
@@ -220,15 +226,27 @@ public class DesignService
         IReadOnlyList<Suggestion> suggestions;
         try
         {
-            suggestions = _catalog.Select(analysis, SuggestionCount);
+            var response = await _suggestions.SuggestAsync(AnalysisRequestDto.From(analysis), cancellationToken);
+
+            if (response.Status == SuggestionClientStatus.NoSuitableItems)
+                return ServiceResult.Fail(NoSuitableItemsMessage);
+            if (response.Status != SuggestionClientStatus.Success)
+                return ServiceResult.Fail(CatalogUnavailableMessage);
+
+            suggestions = response.Suggestions
+                .OrderBy(s => s.Rank)
+                .Take(SuggestionCount)
+                .Select(s => s.ToModel())
+                .ToList();
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw; 
         }
         catch (Exception)
         {
-            return ServiceResult.Fail("Каталог предметів недоступний. Спробуйте пізніше.");
+            return ServiceResult.Fail(CatalogUnavailableMessage);
         }
-
-        if (suggestions.Count == 0)
-            return ServiceResult.Fail("Придатних предметів немає. Спробуйте надати інше фото.");
 
         Session.ShowSuggestions(suggestions);
         return ServiceResult.Ok();

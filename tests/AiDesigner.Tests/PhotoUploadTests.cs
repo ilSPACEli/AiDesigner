@@ -28,7 +28,7 @@ public class PhotoUploadTests
     }
 
     private static DesignService CreateService(IPhotoAnalyzer? analyzer = null) =>
-        new(analyzer ?? new StubPhotoAnalyzer(), new StubCatalog(), new RecordingGalleryClient());
+        new(analyzer ?? new StubPhotoAnalyzer(), new StubSuggestionClient(), new RecordingGalleryClient());
 
     // Підробка полотна: запам'ятовує, чи його викликали.
     private sealed class FakeCanvas
@@ -200,7 +200,7 @@ public class PhotoUploadTests
         var service = CreateService();
         await service.LoadPhotoAsync("room.jpg", Jpeg(800, 600), new FakeCanvas().Show);
         await service.AnalyzeAsync();
-        service.Suggest();
+        await service.SuggestAsync();
         Assert.NotNull(service.Session.Analysis);
 
         var result = await service.LoadPhotoAsync("room2.png", Png(1024, 768), new FakeCanvas().Show);

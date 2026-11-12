@@ -15,15 +15,16 @@ namespace AiDesigner.Tests.Services;
 // AC-23 (R7 у зв'язці з репозиторієм), AC-24 (розмір, некоректні дані).
 public class ResultServiceTests
 {
-    // Предмет із StubCatalog: Id "stub-01", назва «Сірий диван»
+    // Предмет заглушки: Id "stub-01", назва «Сірий диван»
     private const string ItemId = "stub-01";
     private const string ItemName = "Сірий диван";
 
     private static byte[] Png(int width = 40, int height = 30) => TestImages.Solid(width, height, new Rgb24(200, 100, 50));
 
-    private static ResultService CreateService(IResultRepository? repository = null, GalleryOptions? options = null) =>
+    private static ResultService CreateService(
+        IResultRepository? repository = null, GalleryOptions? options = null, ICatalogRepository? catalog = null) =>
         new(repository ?? new InMemoryResultRepository(),
-            new StubCatalog(),
+            catalog ?? new InMemoryCatalogRepository(StubSuggestionClient.Items),
             options ?? new GalleryOptions(),
             NullLogger<ResultService>.Instance);
 
@@ -369,6 +370,19 @@ public class ResultServiceTests
     }
 
     [Fact]
+    public async Task Save_CatalogFails_ReturnsFailed_WithoutThrowing()
+    {
+        var repository = new InMemoryResultRepository();
+        var service = CreateService(repository, catalog: new FailingCatalog());
+
+        var outcome = await service.SaveAsync(Png(), ItemId);
+
+        Assert.Equal(SaveStatus.Failed, outcome.Status);
+        Assert.Equal(ResultService.SaveFailedMessage, outcome.Message);
+        Assert.Equal(0, await repository.CountAsync());
+    }
+
+    [Fact]
     public async Task Save_Cancelled_PropagatesCancellation()
     {
         using var cts = new CancellationTokenSource();
@@ -390,6 +404,16 @@ public class ResultServiceTests
     public void Constructor_NonPositiveMaxImageBytes_Throws()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => CreateService(options: new GalleryOptions { MaxImageBytes = 0 }));
+    }
+
+    // Каталог, читання якого падає, як обрив зв'язку з БД
+    private sealed class FailingCatalog : ICatalogRepository
+    {
+        public Task<IReadOnlyList<CatalogItem>> GetAllAsync(CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException("БД недоступна");
+
+        public Task<CatalogItem?> GetByIdAsync(string id, CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException("БД недоступна");
     }
 
     // Сховище, у якому запис завжди падає, як обрив зв'язку з БД

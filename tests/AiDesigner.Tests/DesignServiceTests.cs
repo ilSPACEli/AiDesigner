@@ -1,3 +1,4 @@
+using AiDesigner.Api.Dto;
 using AiDesigner.Clients;
 using AiDesigner.Models;
 using AiDesigner.Services;
@@ -5,7 +6,6 @@ using AiDesigner.Services.Stubs;
 using AiDesigner.Tests.Clients;
 
 namespace AiDesigner.Tests;
-
 
 public class DesignServiceTests
 {
@@ -17,12 +17,6 @@ public class DesignServiceTests
             run(cancellationToken);
     }
 
-    private sealed class FakeCatalog(Func<IReadOnlyList<Suggestion>> select) : ICatalog
-    {
-        public IReadOnlyList<CatalogItem> Items => Array.Empty<CatalogItem>();
-        public IReadOnlyList<Suggestion> Select(AnalysisResult analysis, int count) => select();
-    }
-
     private static Photo CreatePhoto() => new()
     {
         FileName = "room.jpg", Format = "jpeg", Width = 800, Height = 600, SizeBytes = 1000,
@@ -30,10 +24,21 @@ public class DesignServiceTests
     };
 
     private static DesignService CreateService(
-        IPhotoAnalyzer? analyzer = null, ICatalog? catalog = null, IGalleryClient? gallery = null) =>
+        IPhotoAnalyzer? analyzer = null,
+        ISuggestionClient? suggestions = null,
+        IGalleryClient? gallery = null) =>
         new(analyzer ?? new StubPhotoAnalyzer(),
-            catalog ?? new StubCatalog(),
+            suggestions ?? new StubSuggestionClient(),
             gallery ?? new RecordingGalleryClient());
+
+    // Сервіс у стані ANALYZED (аналіз на заглушці).
+    private static async Task<DesignService> CreateAnalyzedAsync(ISuggestionClient suggestions)
+    {
+        var service = CreateService(suggestions: suggestions);
+        service.LoadPhoto(CreatePhoto());
+        await service.AnalyzeAsync();
+        return service;
+    }
 
     // Сервіс у стані ITEM_PLACED: фото → аналіз → пропозиції → предмет розміщено.
     private static async Task<DesignService> CreatePlacedAsync(IGalleryClient gallery)
@@ -41,7 +46,7 @@ public class DesignServiceTests
         var service = CreateService(gallery: gallery);
         service.LoadPhoto(CreatePhoto());
         await service.AnalyzeAsync();
-        service.Suggest();
+        await service.SuggestAsync();
         service.PlaceItem(service.Session.Suggestions[0].Item, 0, 0);
         return service;
     }
@@ -55,7 +60,7 @@ public class DesignServiceTests
 
         service.LoadPhoto(CreatePhoto());
         var analysis = await service.AnalyzeAsync();
-        var suggest = service.Suggest();
+        var suggest = await service.SuggestAsync();
         service.PlaceItem(service.Session.Suggestions[0].Item, 10, 10);
         var save = await service.SaveAsync(new byte[] { 1 });
 
@@ -98,10 +103,9 @@ public class DesignServiceTests
     [Fact]
     public async Task Analyze_Timeout_ReturnsError_KeepsPhotoLoaded()
     {
-        // Аналізатор «зависає» назавжди; тайм-аут зменшено до 200 мс, щоб тест був швидким.
         var service = new DesignService(
             new FakeAnalyzer(async ct => { await Task.Delay(Timeout.Infinite, ct); return AnalysisOutcome.InsufficientData(); }),
-            new StubCatalog(),
+            new StubSuggestionClient(),
             new RecordingGalleryClient())
         {
             AnalysisTimeout = TimeSpan.FromMilliseconds(200)
@@ -128,31 +132,86 @@ public class DesignServiceTests
         Assert.Same(newPhoto, service.Session.Photo);
     }
 
-    // ---------- UC-03: немає пропозицій ----------
+    // ---------- UC-03: добір через API ----------
 
     [Fact]
-    public async Task Suggest_NoItems_Fails_StaysAnalyzed()
+    public async Task Suggest_SendsAnalysisWithoutPhoto_AndShowsFullItems()
     {
-        var service = CreateService(catalog: new FakeCatalog(() => Array.Empty<Suggestion>()));
-        service.LoadPhoto(CreatePhoto());
-        await service.AnalyzeAsync();
+        var item = StubSuggestionClient.Items[0];
+        var client = new FakeSuggestionClient(_ => SuggestionClientResult.Success(new[]
+        {
+            SuggestionDto.From(new Suggestion { Item = item, Rank = 1, Score = 2, Reason = "Аналогова гармонія" })
+        }));
+        var service = await CreateAnalyzedAsync(client);
 
-        var result = service.Suggest();
+        var result = await service.SuggestAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(SessionState.SUGGESTIONS_SHOWN, service.Session.State);
+
+        // На сервер іде результат аналізу (NFR-04: без фото).
+        var request = Assert.Single(client.Requests);
+        var analysis = service.Session.Analysis!;
+        Assert.Equal(analysis.Lighting.ToString(), request.Lighting);
+        Assert.Equal(analysis.Colors.Select(c => c.Hex), request.Colors!.Select(c => c!.Hex));
+
+        // Предмет повний: з картинкою, щоб поставити його на полотно.
+        var shown = Assert.Single(service.Session.Suggestions);
+        Assert.Equal(item.Id, shown.Item.Id);
+        Assert.Equal(item.Name, shown.Item.Name);
+        Assert.Equal(item.ImageFile, shown.Item.ImageFile);
+        Assert.Equal(item.SuitableLightings, shown.Item.SuitableLightings);
+        Assert.Equal("Аналогова гармонія", shown.Reason);
+    }
+
+    [Fact]
+    public async Task Suggest_NoSuitableItems_Fails_StaysAnalyzed()
+    {
+        var service = await CreateAnalyzedAsync(new FakeSuggestionClient(_ => SuggestionClientResult.NoSuitableItems()));
+
+        var result = await service.SuggestAsync();
 
         Assert.False(result.IsSuccess);
+        Assert.Equal(DesignService.NoSuitableItemsMessage, result.Message);
         Assert.Equal(SessionState.ANALYZED, service.Session.State);
     }
 
     [Fact]
     public async Task Suggest_CatalogUnavailable_Fails_StaysAnalyzed()
     {
-        var service = CreateService(catalog: new FakeCatalog(() => throw new FileNotFoundException("catalog.json")));
-        service.LoadPhoto(CreatePhoto());
-        await service.AnalyzeAsync();
+        var service = await CreateAnalyzedAsync(new FakeSuggestionClient(_ => SuggestionClientResult.Unavailable()));
 
-        var result = service.Suggest();
+        var result = await service.SuggestAsync();
 
         Assert.False(result.IsSuccess);
+        Assert.Equal(DesignService.CatalogUnavailableMessage, result.Message);
+        Assert.Equal(SessionState.ANALYZED, service.Session.State);
+    }
+
+    [Fact]
+    public async Task Suggest_ClientThrows_ReturnsCatalogUnavailable_StaysAnalyzed()
+    {
+        var service = await CreateAnalyzedAsync(new FakeSuggestionClient(_ => throw new HttpRequestException("API недоступний")));
+
+        var result = await service.SuggestAsync();
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(DesignService.CatalogUnavailableMessage, result.Message);
+        Assert.Equal(SessionState.ANALYZED, service.Session.State);
+    }
+
+    [Fact]
+    public async Task Suggest_CallerCancels_PropagatesCancellation_StaysAnalyzed()
+    {
+        using var cts = new CancellationTokenSource();
+        var service = await CreateAnalyzedAsync(new FakeSuggestionClient(_ =>
+        {
+            cts.Cancel();
+            throw new OperationCanceledException(cts.Token);
+        }));
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.SuggestAsync(cts.Token));
+
         Assert.Equal(SessionState.ANALYZED, service.Session.State);
     }
 
@@ -190,7 +249,6 @@ public class DesignServiceTests
     [Fact]
     public async Task AC24_Save_GalleryRejects_ReturnsItsMessage_StaysItemPlaced()
     {
-        // Відмова API (напр., 413 або 429) приходить із текстом сервера, і користувач бачить саме його.
         var gallery = new RecordingGalleryClient { SaveFailureMessage = "Максимальний розмір — 5 МБ." };
         var service = await CreatePlacedAsync(gallery);
 
@@ -205,7 +263,6 @@ public class DesignServiceTests
     [Fact]
     public async Task Save_GalleryClientThrows_ReturnsFail_StaysItemPlaced()
     {
-        // E1: збій зв'язку з API — не падіння сторінки, а повідомлення; стан не змінюється.
         var gallery = new RecordingGalleryClient { SaveException = new HttpRequestException("API недоступний") };
         var service = await CreatePlacedAsync(gallery);
 
@@ -222,7 +279,7 @@ public class DesignServiceTests
     {
         var gallery = new RecordingGalleryClient();
         var service = CreateService(gallery: gallery);
-        service.LoadPhoto(CreatePhoto());   // PHOTO_LOADED
+        service.LoadPhoto(CreatePhoto());
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.SaveAsync(new byte[] { 1 }));
 

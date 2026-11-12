@@ -27,12 +27,12 @@ public class ResultService
         $"Максимальний розмір — {maxImageBytes / 1048576.0:0.#} МБ.";
 
     private readonly IResultRepository _repository;
-    private readonly ICatalog _catalog;
+    private readonly ICatalogRepository _catalog;
     private readonly GalleryOptions _options;
     private readonly GalleryRetentionPolicy _retention;
     private readonly ILogger<ResultService> _logger;
 
-    public ResultService(IResultRepository repository, ICatalog catalog, GalleryOptions options, ILogger<ResultService> logger)
+    public ResultService(IResultRepository repository, ICatalogRepository catalog, GalleryOptions options, ILogger<ResultService> logger)
     {
         ArgumentNullException.ThrowIfNull(repository);
         ArgumentNullException.ThrowIfNull(catalog);
@@ -58,12 +58,12 @@ public class ResultService
         if (string.IsNullOrWhiteSpace(catalogItemId))
             return SaveOutcome.BadRequest(NoItemMessage);
 
-        var item = _catalog.Items.FirstOrDefault(i => i.Id == catalogItemId);
-        if (item is null)
-            return SaveOutcome.BadRequest(UnknownItemMessage);
-
         try
         {
+            var item = await _catalog.GetByIdAsync(catalogItemId, cancellationToken);
+            if (item is null)
+                return SaveOutcome.BadRequest(UnknownItemMessage);
+
             var header = IdentifyPng(pngBytes);
             if (header is null)
                 return SaveOutcome.BadRequest(NotPngMessage);

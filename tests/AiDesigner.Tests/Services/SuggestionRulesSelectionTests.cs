@@ -3,10 +3,11 @@ using System.Linq;
 using Xunit;
 using AiDesigner.Models;
 using AiDesigner.Services;
+using AiDesigner.Services.Suggestions;
 
 namespace AiDesigner.Tests.Services;
 
-public class CatalogTests
+public class SuggestionRulesSelectionTests
 {
     private IReadOnlyList<CatalogItem> GetTestItems()
     {
@@ -28,7 +29,7 @@ public class CatalogTests
     public void AC06_SameInput_ReturnsSameSuggestions()
     {
 
-        var catalog = new Catalog(GetTestItems());
+        var catalog = new SuggestionRules(GetTestItems());
         var analysis = new AnalysisResult
         {
             Lighting = LightingLevel.BRIGHT,
@@ -49,7 +50,7 @@ public class CatalogTests
     [Fact]
     public void AC07_SuggestionHasRequiredFields()
     {
-        var catalog = new Catalog(GetTestItems());
+        var catalog = new SuggestionRules(GetTestItems());
         var analysis = new AnalysisResult
         {
             Lighting = LightingLevel.BRIGHT,
@@ -72,7 +73,7 @@ public class CatalogTests
     [Fact]
     public void R2_Select_ExcludesItemsWithIncompatibleLighting()
     {
-        var catalog = new Catalog(GetTestItems());
+        var catalog = new SuggestionRules(GetTestItems());
         var analysis = new AnalysisResult
         {
             Lighting = LightingLevel.BRIGHT, 
@@ -88,7 +89,7 @@ public class CatalogTests
     public void R3_Select_ReturnsMax2ItemsOfSameType()
     {
         // Arrange
-        var catalog = new Catalog(GetTestItems());
+        var catalog = new SuggestionRules(GetTestItems());
         var analysis = new AnalysisResult
         {
             Lighting = LightingLevel.BRIGHT,
@@ -104,7 +105,7 @@ public class CatalogTests
     [Fact]
     public void R1_NeutralPalette_IgnoresHueAndSelectsNeutral()
     {
-        var catalog = new Catalog(GetTestItems());
+        var catalog = new SuggestionRules(GetTestItems());
         var analysis = new AnalysisResult
         {
             Lighting = LightingLevel.BRIGHT,

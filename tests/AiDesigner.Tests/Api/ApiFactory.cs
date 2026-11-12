@@ -14,10 +14,14 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
 {
     private readonly TestDb _testDb = new();
 
-    public ApiFactory(GalleryOptions? gallery = null)
+    private readonly ICatalogRepository? _catalog;
+
+    // catalog — підміна каталогу (наприклад, порожній, щоб перевірити 503); без неї — каталог із БД, засіяний із catalog.json.
+    public ApiFactory(GalleryOptions? gallery = null, ICatalogRepository? catalog = null)
     {
         // За замовчуванням ліміт частоти не заважає тестам, яким він не потрібен.
         Gallery = gallery ?? new GalleryOptions { SavesPerMinute = 1000 };
+        _catalog = catalog;
     }
 
     public GalleryOptions Gallery { get; }
@@ -42,6 +46,12 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
 
             services.RemoveAll<IResultRepository>();
             services.AddSingleton<IResultRepository>(Results);
+
+            if (_catalog is not null)
+            {
+                services.RemoveAll<ICatalogRepository>();
+                services.AddSingleton(_catalog);
+            }
         });
     }
 
