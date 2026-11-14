@@ -629,3 +629,12 @@ $RECYCLE.BIN/
 
 # AiDesigner: збережені результати PNG (FR-11)
 /output/
+
+# Secrets
+.env
+.env.*
+!.env.example
+ 
+# VS Code
+.vscode/
+ 

@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace AiDesigner.Tests;
 
-/// <summary>FileResultStorage: AC-11 (файл PNG) і E1 (помилка збереження, файлу немає).</summary>
+
 public sealed class FileResultStorageTests : IDisposable
 {
     // Кожен тест працює у власній тимчасовій папці, яку знищує Dispose.
@@ -178,30 +178,5 @@ public sealed class FileResultStorageTests : IDisposable
         var storage = new FileResultStorage(blocker);
 
         await Assert.ThrowsAnyAsync<IOException>(() => storage.SaveAsync(CreatePng()));
-    }
-
-    [Fact]
-    public async Task E1_ThroughDesignService_ReturnsFail_StaysItemPlaced_NoFile()
-    {
-        Directory.CreateDirectory(_root);
-        var blocker = Path.Combine(_root, "blocker");
-        File.WriteAllText(blocker, "x");
-
-        var service = new DesignService(new StubPhotoAnalyzer(), new StubCatalog(), new FileResultStorage(blocker));
-        service.LoadPhoto(new Photo
-        {
-            FileName = "room.jpg", Format = "jpeg", Width = 800, Height = 600, SizeBytes = 1000,
-            Content = new byte[] { 1, 2, 3 }
-        });
-        await service.AnalyzeAsync();
-        service.Suggest();
-        service.PlaceItem(service.Session.Suggestions[0].Item, 0, 0);
-
-        var result = await service.SaveAsync(CreatePng());
-
-        Assert.False(result.IsSuccess);
-        Assert.Equal(SessionState.ITEM_PLACED, service.Session.State);
-        Assert.Empty(service.Session.SavedResults);
-        Assert.Equal("x", File.ReadAllText(blocker));   // нічого поруч не створено й не зіпсовано
     }
 }

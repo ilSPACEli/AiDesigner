@@ -1,15 +1,11 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using Microsoft.AspNetCore.Hosting;
 using AiDesigner.Models;
-using AiDesigner.Data;
 using AiDesigner.Services.Analysis;
 
-namespace AiDesigner.Services;
+namespace AiDesigner.Services.Suggestions;
 
-public class Catalog : ICatalog
+// Правила добору пропозицій R1–R5 (UC-03; CR-01, CR-03). Перенесено без змін логіки з Services/Catalog.cs (v1):
+// тепер це чистий клас без файлів і БД — предмети передає SuggestionService (з ICatalogRepository).
+public sealed class SuggestionRules
 {
     // R5 / UC-03 A2: позначка для предметів, доданих лише за освітленістю (формулювання з ТЗ)
     // R3: не більше двох предметів одного типу
@@ -18,19 +14,12 @@ public class Catalog : ICatalog
     public const string PartialMatchReason =
         "Часткова відповідність за кольором: предмет підходить лише за освітленістю.";
 
-    private readonly Lazy<IReadOnlyList<CatalogItem>> _itemsLoader;
+    private readonly IReadOnlyList<CatalogItem> _items;
 
-    public IReadOnlyList<CatalogItem> Items => _itemsLoader.Value;
-
-    public Catalog(IWebHostEnvironment env)
+    public SuggestionRules(IReadOnlyList<CatalogItem> items)
     {
-        string path = Path.Combine(env.WebRootPath, CatalogLoader.DefaultRelativePath);
-        _itemsLoader = new Lazy<IReadOnlyList<CatalogItem>>(() => CatalogLoader.LoadFromFile(path));
-    }
-
-    public Catalog(IReadOnlyList<CatalogItem> items)
-    {
-        _itemsLoader = new Lazy<IReadOnlyList<CatalogItem>>(() => items ?? new List<CatalogItem>());
+        ArgumentNullException.ThrowIfNull(items);
+        _items = items;
     }
 
     public IReadOnlyList<Suggestion> Select(AnalysisResult analysis, int count)
@@ -44,7 +33,7 @@ public class Catalog : ICatalog
             .Take(2)
             .ToList() ?? new List<DominantColor>();
 
-        foreach (var item in _itemsLoader.Value)
+        foreach (var item in _items)
         {
             if (item.SuitableLightings == null || !item.SuitableLightings.Contains(analysis.Lighting))
                 continue;

@@ -1,0 +1,154 @@
+@page "/gallery"
+@using AiDesigner.Clients
+@using AiDesigner.Services.Results
+@inject IGalleryClient Client
+@inject IJSRuntime JS
+
+<PageTitle>Галерея — ШІ-дизайнер інтер'єру</PageTitle>
+
+<main class="page">
+    <header>
+        <h1>Галерея</h1>
+        <p class="subtitle">Збережені роботи</p>
+    </header>
+
+    @if (_error is not null)
+    {
+        <div class="message error" role="alert">@_error</div>
+    }
+
+    @if (_loading)
+    {
+        <p class="status" role="status">Завантаження…</p>
+    }
+    else if (_loadFailed)
+    {
+        <button class="btn" @onclick="LoadAsync">Спробувати ще раз</button>
+    }
+    else if (_items.Count == 0)
+    {
+        <p class="status">Збережених робіт ще немає</p>
+    }
+    else
+    {
+        <ul class="gallery-grid">
+            @foreach (var item in _items)
+            {
+                <li class="card work" @key="item.Id">
+                    <img src="@item.ThumbnailUrl" alt="@item.ItemName" loading="lazy" />
+                    <div class="meta">
+                        <strong>@item.ItemName</strong>
+                        <span class="date">@item.DateText</span>
+                    </div>
+
+                    @if (_confirmingId == item.Id)
+                    {
+                        <p class="confirm-text">Видалити цю роботу?</p>
+                        <div class="actions">
+                            <button class="btn btn-danger" @onclick="() => DeleteAsync(item.Id)">Так, видалити</button>
+                            <button class="btn btn-secondary" @onclick="CancelDelete">Скасувати</button>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="actions">
+                            <a class="btn btn-secondary" href="@item.ImageUrl" target="_blank" rel="noopener">Відкрити</a>
+                            <a class="btn btn-secondary" href="@item.ImageUrl" download="@item.DownloadFileName">Завантажити</a>
+                            <button class="btn btn-danger" @onclick="() => AskDelete(item.Id)"
+                                    disabled="@(_busyId == item.Id)">
+                                @(_busyId == item.Id ? "Видалення…" : "Видалити")
+                            </button>
+                        </div>
+                    }
+                </li>
+            }
+        </ul>
+    }
+</main>
+
+@code {
+    private List<GalleryItemView> _items = new();
+    private bool _loading = true;       // перший показ — «Завантаження…»
+    private bool _loadFailed;
+    private string? _error;
+    private int? _confirmingId;         // картка, де зараз питаємо «Видалити цю роботу?»
+    private int? _busyId;               // картка, яку зараз видаляють
+    private TimeZoneInfo? _zone;        // пояс браузера (визначаємо один раз)
+
+    // Завантажуємо після першого показу, коли вже є інтерактивне з'єднання:
+    // під час попереднього рендеру сторінка не робить запиту до власного API.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _loadFailed = false;
+        _error = null;
+
+        try
+        {
+            _zone ??= await ResolveZoneAsync();
+            var results = await Client.GetAllAsync();
+            _items = results.Select(r => GalleryItemView.From(r, _zone)).ToList();
+        }
+        catch (Exception ex)
+        {
+            // Межа інтерфейсу: будь-який збій показуємо текстом, а не падінням сторінки.
+            _loadFailed = true;
+            _error = GalleryErrorMessages.FromException(ex);
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    // Сервер не знає пояса користувача — питаємо браузер. Не вийшло: час за поясом сервера.
+    private async Task<TimeZoneInfo> ResolveZoneAsync()
+    {
+        try
+        {
+            await using var module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/browserInfo.js");
+            var id = await module.InvokeAsync<string?>("getTimeZone");
+            return BrowserTimeZone.Resolve(id);
+        }
+        catch (Exception)
+        {
+            return TimeZoneInfo.Local;
+        }
+    }
+
+    private void AskDelete(int id) => _confirmingId = id;
+
+    private void CancelDelete() => _confirmingId = null;
+
+    private async Task DeleteAsync(int id)
+    {
+        _confirmingId = null;
+        _busyId = id;
+        _error = null;
+
+        try
+        {
+            var deleted = await Client.DeleteAsync(id);
+            if (!deleted)
+                _error = GalleryErrorMessages.WorkNotFoundMessage;   // 404: хтось уже видалив
+
+            // І після успіху, і після 404 робити в списку більше нічого — прибираємо картку.
+            _items.RemoveAll(i => i.Id == id);
+        }
+        catch (Exception ex)
+        {
+            _error = GalleryErrorMessages.FromException(ex);          // робота лишається в списку
+        }
+        finally
+        {
+            _busyId = null;
+        }
+    }
+}

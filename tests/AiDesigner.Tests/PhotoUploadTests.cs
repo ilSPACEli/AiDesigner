@@ -2,15 +2,13 @@ using System.Text;
 using AiDesigner.Models;
 using AiDesigner.Services;
 using AiDesigner.Services.Stubs;
+using AiDesigner.Tests.Clients;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace AiDesigner.Tests;
 
-/// <summary>
-/// Тести UC-01 на рівні DesignService: перевірка за вмістом файла,
-/// порядок «перевірка → полотно → сесія», скидання результатів (FR-13).
-/// </summary>
+
 public class PhotoUploadTests
 {
     // ---------- Тестові файли генеруються в пам'яті ----------
@@ -30,7 +28,7 @@ public class PhotoUploadTests
     }
 
     private static DesignService CreateService(IPhotoAnalyzer? analyzer = null) =>
-        new(analyzer ?? new StubPhotoAnalyzer(), new StubCatalog(), new StubResultStorage());
+        new(analyzer ?? new StubPhotoAnalyzer(), new StubSuggestionClient(), new RecordingGalleryClient());
 
     // Підробка полотна: запам'ятовує, чи його викликали.
     private sealed class FakeCanvas
@@ -202,7 +200,7 @@ public class PhotoUploadTests
         var service = CreateService();
         await service.LoadPhotoAsync("room.jpg", Jpeg(800, 600), new FakeCanvas().Show);
         await service.AnalyzeAsync();
-        service.Suggest();
+        await service.SuggestAsync();
         Assert.NotNull(service.Session.Analysis);
 
         var result = await service.LoadPhotoAsync("room2.png", Png(1024, 768), new FakeCanvas().Show);

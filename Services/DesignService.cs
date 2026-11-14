@@ -1,3 +1,5 @@
+using AiDesigner.Api.Dto;
+using AiDesigner.Clients;
 using AiDesigner.Models;
 
 namespace AiDesigner.Services;
@@ -7,14 +9,14 @@ public class DesignService
     public const int SuggestionCount = 4;
 
     private readonly IPhotoAnalyzer _analyzer;
-    private readonly ICatalog _catalog;
-    private readonly IResultStorage _storage;
+    private readonly ISuggestionClient _suggestions;
+    private readonly IGalleryClient _gallery;
 
-    public DesignService(IPhotoAnalyzer analyzer, ICatalog catalog, IResultStorage storage)
+    public DesignService(IPhotoAnalyzer analyzer, ISuggestionClient suggestions, IGalleryClient gallery)
     {
         _analyzer = analyzer;
-        _catalog = catalog;
-        _storage = storage;
+        _suggestions = suggestions;
+        _gallery = gallery;
     }
 
     public DesignSession Session { get; } = new();
@@ -33,31 +35,18 @@ public class DesignService
     public const string PhotoLoadInProgressMessage =
         "Зачекайте: попереднє фото ще завантажується.";
 
-    /// <summary>
-    /// true, поки LoadPhotoAsync чекає на полотно. У цей час друге завантаження
-    /// й аналіз відхиляються, щоб полотно й сесія не розійшлися.
-    /// </summary>
+
     public bool IsLoadingPhoto { get; private set; }
 
-    /// <summary>
-    /// Перевіряє розмір файла ДО його читання (NFR-06): сторінка знає розмір одразу,
-    /// тож завеликий файл відхиляється з нормальною причиною, а не з IOException.
-    /// </summary>
+
     public ServiceResult CheckFileSize(long sizeBytes) =>
         sizeBytes > Photo.MaxSizeBytes
             ? ServiceResult.Fail(Photo.TooLargeMessage)
             : ServiceResult.Ok();
 
-    /// <summary>
-    /// Основний сценарій UC-01 у правильному порядку:
-    /// перевірка (NFR-06) → показ на полотні → зміна сесії (PHOTO_LOADED, FR-13).
-    /// Невалідне фото не потрапляє ні на полотно, ні в сесію (A2, A4).
-    /// </summary>
-    /// <param name="showOnCanvas">Як показати фото на екрані (на сторінці — PhotoCanvas.SetPhotoAsync).</param>
+
     public async Task<ServiceResult> LoadPhotoAsync(string fileName, byte[] content, Func<byte[], Task> showOnCanvas)
     {
-        // Одночасно — лише одне завантаження: інакше вони можуть завершитися не по черзі
-        // (на полотні фото B, а в сесії — A).
         if (IsLoadingPhoto)
             return ServiceResult.Fail(PhotoLoadInProgressMessage);
 
@@ -112,11 +101,10 @@ public class DesignService
         }
         catch (Exception)
         {
-            // Не вдалося — користувач усе одно побачить повідомлення про відмову.
+            // Не вдалося показати фото — сесію не змінюємо.
         }
     }
 
-    /// <summary>Записує вже прочитане фото в сесію, якщо воно відповідає NFR-06.</summary>
     public ServiceResult LoadPhoto(Photo photo)
     {
         if (!photo.Validate())
@@ -134,11 +122,7 @@ public class DesignService
         return ServiceResult.Ok();
     }
 
-    /// <summary>
-    /// Визначає справжній формат і розміри за ВМІСТОМ файла, а не за ContentType з браузера,
-    /// який легко підробити (напр., WebP, перейменований у .jpg).
-    /// Image.Identify читає лише заголовок файла, без повного декодування. Усе — в пам'яті (NFR-04).
-    /// </summary>
+
     private static Photo ReadPhoto(string fileName, byte[] content)
     {
         string format;
@@ -208,8 +192,6 @@ public class DesignService
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         try
         {
-            // WaitAsync перестає чекати через AnalysisTimeout, навіть якщо аналізатор
-            // не перевіряє токен; токен додатково просить аналізатор зупинитися.
             return await _analyzer
                 .AnalyzeAsync(photo, timeoutCts.Token)
                 .WaitAsync(AnalysisTimeout, cancellationToken);
@@ -231,7 +213,12 @@ public class DesignService
         }
     }
 
-    public ServiceResult Suggest()
+
+    public const string CatalogUnavailableMessage = "Каталог предметів недоступний. Спробуйте пізніше.";
+
+    public const string NoSuitableItemsMessage = "Придатних предметів немає. Спробуйте надати інше фото.";
+
+    public async Task<ServiceResult> SuggestAsync(CancellationToken cancellationToken = default)
     {
         var analysis = Session.Analysis
             ?? throw new InvalidOperationException("Спочатку виконайте аналіз фото.");
@@ -239,15 +226,27 @@ public class DesignService
         IReadOnlyList<Suggestion> suggestions;
         try
         {
-            suggestions = _catalog.Select(analysis, SuggestionCount);
+            var response = await _suggestions.SuggestAsync(AnalysisRequestDto.From(analysis), cancellationToken);
+
+            if (response.Status == SuggestionClientStatus.NoSuitableItems)
+                return ServiceResult.Fail(NoSuitableItemsMessage);
+            if (response.Status != SuggestionClientStatus.Success)
+                return ServiceResult.Fail(CatalogUnavailableMessage);
+
+            suggestions = response.Suggestions
+                .OrderBy(s => s.Rank)
+                .Take(SuggestionCount)
+                .Select(s => s.ToModel())
+                .ToList();
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw; 
         }
         catch (Exception)
         {
-            return ServiceResult.Fail("Каталог предметів недоступний. Спробуйте пізніше.");
+            return ServiceResult.Fail(CatalogUnavailableMessage);
         }
-
-        if (suggestions.Count == 0)
-            return ServiceResult.Fail("Придатних предметів немає. Спробуйте надати інше фото.");
 
         Session.ShowSuggestions(suggestions);
         return ServiceResult.Ok();
@@ -276,7 +275,6 @@ public class DesignService
             || Session.Photo is not { } photo)
             throw new InvalidOperationException($"Неможливо змінити положення предмета у стані {Session.State}.");
 
-        // Спершу обчислюємо (може кинути виняток), потім змінюємо: розміщення не лишиться «наполовину».
         var clamped = PlacementGeometry.Clamp(x, y, scale, photo.Width, photo.Height, itemWidth, itemHeight);
         placement.Move(clamped.X - placement.X, clamped.Y - placement.Y);
         placement.Resize(clamped.Scale);
@@ -285,21 +283,28 @@ public class DesignService
 
     public async Task<ServiceResult> SaveAsync(byte[] pngBytes, CancellationToken cancellationToken = default)
     {
-        // Перевіряємо стан ДО запису файлу, щоб не створити файл, який сесія не прийме.
-        if (Session.State != SessionState.ITEM_PLACED)
+        if (Session.State != SessionState.ITEM_PLACED || Session.Placement is not { } placement)
             throw new InvalidOperationException($"Неможливо зберегти результат у стані {Session.State}.");
 
-        ResultImage image;
+        GallerySaveResult saved;
         try
         {
-            image = await _storage.SaveAsync(pngBytes, cancellationToken);
+            saved = await _gallery.SaveAsync(pngBytes, placement.Item.Id, cancellationToken);
         }
         catch (Exception)
         {
             return ServiceResult.Fail("Не вдалося зберегти зображення. Спробуйте ще раз.");
         }
 
-        Session.MarkSaved(image);
+        if (!saved.IsSuccess)
+            return ServiceResult.Fail(saved.Message);   
+        var work = saved.Result!;
+        Session.MarkSaved(new ResultImage
+        {
+            FileName = $"result-{work.Id}.png",
+            Format = "png",
+            CreatedAt = work.CreatedAt
+        });
         return ServiceResult.Ok();
     }
 }
