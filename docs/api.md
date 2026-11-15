@@ -74,7 +74,7 @@
   "lighting": "MODERATE",
   "colors": [ { "hex": "#D8C3A5", "hue": 36, "share": 61.2 }, { "hex": "#322D28", "hue": 30, "share": 30.6 }, { "hex": "#9A8F80", "hue": 35, "share": 8.2 } ],
   "style": "LOFT",                         // null — «стиль не визначено» (R8 не прийняв або режим BASIC)
-  "confidence": 0.82                       // null для BASIC; інакше 0–1
+  "confidence": 0.82                       // null для BASIC; для LOCAL_AI / CLOUD_AI — 0–1, null лише якщо ШІ не дав коректної відповіді
 }
 ```
 
@@ -86,7 +86,7 @@
 |---|---|---|---|
 | `image` | файл `image/png` | так | PNG за вмістом (не за розширенням і не за `Content-Type`), ≤ 5 МБ, ≤ 50 мегапікселів (ширина × висота) |
 | `catalogItemId` | рядок | так | предмет існує в каталозі |
-| `analysis` **(S2)** | рядок JSON (`ResultAnalysisDto`) | так | ті самі перевірки `lighting` і `colors`, що для `POST /api/suggestions` (розд. 1.3); `mode` — з переліку; `style` — null або з переліку; `confidence` — null або 0–1; для `BASIC` `style` і `confidence` — null |
+| `analysis` **(S2)** | рядок JSON (`ResultAnalysisDto`) | так | ті самі перевірки `lighting` і `colors`, що для `POST /api/suggestions` (розд. 1.3); `mode` — з переліку (фактичний режим результату: якщо ШІ не відповів і показано результат без ШІ, AC-30 — `BASIC`); `BASIC` → `style` і `confidence` — null; `LOCAL_AI` / `CLOUD_AI` → `confidence` у межах 0–1 або null (зламана / порожня відповідь ШІ, AC-28); `style` ≠ null → `confidence` обов'язкова й ≥ 0,6 (узгоджено з R8) |
 
 **(S2) Атомарність (FR-21).** Робота (`SavedResults`) і аналіз (`ResultAnalyses`) записуються в **одній транзакції** разом із витісненням за R7: якщо запис аналізу не вдався — немає ні роботи, ні аналізу, витіснення теж скасовано; відповідь `500`.
 
@@ -185,7 +185,7 @@
 | `SuggestAsync(CancellationToken)` | UC-03 | добір до 4 пропозицій через `ISuggestionClient` (`POST /api/suggestions`); на сервер іде лише результат аналізу | `ServiceResult`; `422` → «Придатних предметів немає…» (R5), `503`, інша відмова чи помилка мережі → «Каталог предметів недоступний…» (E1); стан не змінюється |
 | `PlaceItemAtCenter(CatalogItem item, int itemWidth, int itemHeight)` | UC-04 | початкове положення по центру фото (AC-08) | `PlacementValues(X, Y, Scale)`; стан `ITEM_PLACED` |
 | `UpdatePlacement(int x, int y, decimal scale, int itemWidth, int itemHeight)` | UC-04 | нове положення з обмеженням межами фото (AC-09) | `PlacementValues` — фактично застосовані значення |
-| `SaveAsync(byte[] pngBytes, CancellationToken)` | UC-04 | збереження PNG у галерею через `IGalleryClient` (FR-11, US-1); `catalogItemId` береться з `Session.Placement`; **(S2)** аналіз — з `Session.Analysis` (FR-21) | `ServiceResult`; успіх → `SAVED`, помилка → `ITEM_PLACED` (E1); відмова API (`413`, `429`, `400`) повертає текст `detail` із ProblemDetails |
+| `SaveAsync(byte[] pngBytes, CancellationToken)` | UC-04 | збереження PNG у галерею через `IGalleryClient` (FR-11, US-1); `catalogItemId` береться з `Session.Placement`; **(S2)** аналіз — з `Session.Analysis` → `ResultAnalysisDto` → `IGalleryClient.SaveAsync(png, catalogItemId, analysis)` (FR-21) | `ServiceResult`; успіх → `SAVED`, помилка → `ITEM_PLACED` (E1); відмова API (`413`, `429`, `400`) повертає текст `detail` із ProblemDetails |
 
 Властивості: `Session` (поточна `DesignSession`), `IsLoadingPhoto`, `AnalysisTimeout` (30 с; у тестах можна зменшити).
 
@@ -215,8 +215,8 @@ public interface ICatalogRepository  // таблиця CatalogItems; реалі�
 
 public interface IGalleryClient   // US-1, реалізація — GalleryClient (HTTP до власного API)
 {
-    // (S2) + ResultAnalysisDto analysis
-    Task<GallerySaveResult> SaveAsync(byte[] pngBytes, string catalogItemId, CancellationToken cancellationToken = default);
+    // (S2) analysis — поле analysis у multipart (FR-21)
+    Task<GallerySaveResult> SaveAsync(byte[] pngBytes, string catalogItemId, ResultAnalysisDto analysis, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ResultDto>> GetAllAsync(CancellationToken cancellationToken = default);
     Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default);   // false — 404
 }
