@@ -77,15 +77,16 @@ public sealed class GeminiStyleAnalyzer : IStyleAnalyzer
             {
                 responseMimeType = "application/json",
                 responseSchema = StylePrompt.GeminiSchema,
-                temperature = 0,
-                thinkingConfig = new { thinkingBudget = 0 }
+                temperature = 0
             }
         };
 
         using var request = Request(HttpMethod.Post, $"v1beta/models/{_options.Model}:generateContent");
         request.Content = JsonContent.Create(body);
         using var response = await _http.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+            throw new HttpRequestException(
+                $"Gemini {(int)response.StatusCode}: {await ReadErrorAsync(response, cancellationToken)}", null, response.StatusCode);
 
         using var json = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
         return ReadText(json.RootElement);
@@ -96,6 +97,22 @@ public sealed class GeminiStyleAnalyzer : IStyleAnalyzer
         var request = new HttpRequestMessage(method, path);
         request.Headers.Add("x-goog-api-key", _options.ApiKey);
         return request;
+    }
+
+    private static async Task<string> ReadErrorAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        try
+        {
+            using var json = JsonDocument.Parse(body);
+            if (json.RootElement.TryGetProperty("error", out var error)
+                && error.TryGetProperty("message", out var message) && message.ValueKind == JsonValueKind.String)
+                return message.GetString() ?? response.ReasonPhrase ?? string.Empty;
+        }
+        catch (JsonException)
+        {
+        }
+        return response.ReasonPhrase ?? string.Empty;
     }
 
     private static string ReadText(JsonElement root)

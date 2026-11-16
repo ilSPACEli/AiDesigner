@@ -4,6 +4,7 @@ using AiDesigner.Services.Stubs;
 using AiDesigner.Services.Style;
 using AiDesigner.Tests.Analysis;
 using AiDesigner.Tests.Clients;
+using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace AiDesigner.Tests.Style;
@@ -183,6 +184,37 @@ public class DesignServiceStyleTests
         Assert.Equal(AnalysisStatus.Success, outcome.Status);
         Assert.Equal(DesignService.StyleFailedNotice(AnalysisMode.LOCAL_AI), outcome.Notice);
         Assert.Equal(AnalysisMode.BASIC, service.Session.Analysis!.Mode);
+    }
+
+    [Fact]
+    public async Task AC30_ProviderFails_ReasonLogged()
+    {
+        var logger = new ListLogger();
+        var cloud = new FakeStyleAnalyzer(AnalysisMode.CLOUD_AI, (_, _) => throw new HttpRequestException("Gemini 404: model not found"));
+        var service = new DesignService(new StubPhotoAnalyzer(), new StubSuggestionClient(), new RecordingGalleryClient(),
+            new[] { cloud }, logger);
+        service.LoadPhoto(CreatePhoto());
+        service.GiveCloudConsent();
+
+        await service.AnalyzeAsync(AnalysisMode.CLOUD_AI);
+
+        var entry = Assert.Single(logger.Entries);
+        Assert.Equal(LogLevel.Warning, entry.Level);
+        Assert.Contains("CLOUD_AI", entry.Message);
+        Assert.Contains("Gemini 404", entry.Exception!.Message);
+    }
+
+    private sealed class ListLogger : ILogger<DesignService>
+    {
+        public List<(LogLevel Level, string Message, Exception? Exception)> Entries { get; } = new();
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+            Func<TState, Exception?, string> formatter) =>
+            Entries.Add((logLevel, formatter(state, exception), exception));
     }
 
     // ---------- AC-31: згода на хмарний ШІ ----------
