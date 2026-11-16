@@ -1,4 +1,5 @@
 using AiDesigner.Api.Dto;
+using AiDesigner.Models;
 using AiDesigner.Services.Results;
 
 namespace AiDesigner.Tests.Services;
@@ -65,6 +66,39 @@ public class GalleryItemViewTests
         var explicitLocal = GalleryItemView.From(dto, TimeZoneInfo.Local);
 
         Assert.Equal(explicitLocal.DateText, byDefault.DateText);
+    }
+
+    [Fact]
+    public void AC32_From_AiWorkWithStyle_ShowsStyle()
+    {
+        var dto = Dto(Utc(2026, 11, 14, 18, 20)) with { AnalysisMode = "CLOUD_AI", Style = "LOFT" };
+
+        var view = GalleryItemView.From(dto, TimeZoneInfo.Utc);
+
+        Assert.NotNull(view.Style);
+        Assert.Equal("Стиль: Лофт", view.Style!.Text);
+        Assert.True(view.Style.IsDetermined);
+    }
+
+    [Fact]
+    public void AC32_From_AiWorkWithoutStyle_NotDetermined()
+    {
+        var dto = Dto(Utc(2026, 11, 14, 18, 20)) with { AnalysisMode = "LOCAL_AI", Style = null };
+
+        var view = GalleryItemView.From(dto, TimeZoneInfo.Utc);
+
+        Assert.Equal(DisplayNames.StyleNotDetermined, view.Style!.Text);
+        Assert.False(view.Style.IsDetermined);
+    }
+
+    [Theory]
+    [InlineData(null)]       // робота збережена до S2
+    [InlineData("BASIC")]
+    public void AC32_From_WorkWithoutAi_NoStyleLine(string? mode)
+    {
+        var dto = Dto(Utc(2026, 11, 14, 18, 20)) with { AnalysisMode = mode };
+
+        Assert.Null(GalleryItemView.From(dto, TimeZoneInfo.Utc).Style);
     }
 
     [Fact]
