@@ -180,8 +180,9 @@
 | `LoadPhotoAsync(string fileName, byte[] content, Func<byte[], Task> showOnCanvas)` | UC-01 | перевірка за вмістом → показ на полотні → `PHOTO_LOADED` | `ServiceResult`; при відмові сесія не змінюється (A2) |
 | `LoadPhoto(Photo photo)` | UC-01 | запис уже прочитаного фото в сесію | `ServiceResult` |
 | `AnalyzeAsync(CancellationToken)` | UC-02 | блокує заміну фото, викликає аналізатор із тайм-аутом 30 с | `AnalysisOutcome`: `Success` → `ANALYZED`; `InsufficientData` (A1) / `Error` (E1) → `PHOTO_LOADED` |
-| `AnalyzeAsync(AnalysisMode mode, CancellationToken)` **(S2)** | UC-02 | палітра й освітленість — як у v1; у режимах ШІ — ще стиль (R8); тайм-аут 30 с на ШІ | `AnalysisOutcome` + стиль або `null`; ШІ не відповів → результат без ШІ й повідомлення (AC-30); `CLOUD_AI` без згоди → відмова без виклику ШІ (AC-31) |
-| `GetModesAsync()` **(S2)** | UC-02 | доступність режимів | перелік (режим, доступний, причина) — для вимкнених режимів у UI (AC-26) |
+| `AnalyzeAsync(AnalysisMode mode, CancellationToken)` **(S2)** | UC-02 | палітра й освітленість — як у v1; у режимах ШІ — ще стиль (R8); тайм-аут 30 с на ШІ (`StyleTimeout`) | `AnalysisOutcome`: `Result.Mode`, `Style` (або `null` — «стиль не визначено»), `Confidence`; ШІ не відповів → `Result.Mode = BASIC` і `Notice` (AC-30); `CLOUD_AI` без згоди → відмова без виклику ШІ (AC-31). `AnalyzeAsync(CancellationToken)` = `BASIC` |
+| `GetModesAsync()` **(S2)** | UC-02 | доступність режимів | `ModeAvailability[]` у порядку BASIC, LOCAL_AI, CLOUD_AI; BASIC доступний завжди (AC-26) |
+| `GiveCloudConsent()`, `HasCloudConsent` **(S2)** | UC-02 | згода на передачу фото Google Gemini — до кінця сесії | без згоди `AnalyzeAsync(CLOUD_AI)` → `Error(CloudConsentRequiredMessage)`, сесія не змінюється (AC-31) |
 | `SuggestAsync(CancellationToken)` | UC-03 | добір до 4 пропозицій через `ISuggestionClient` (`POST /api/suggestions`); на сервер іде лише результат аналізу | `ServiceResult`; `422` → «Придатних предметів немає…» (R5), `503`, інша відмова чи помилка мережі → «Каталог предметів недоступний…» (E1); стан не змінюється |
 | `PlaceItemAtCenter(CatalogItem item, int itemWidth, int itemHeight)` | UC-04 | початкове положення по центру фото (AC-08) | `PlacementValues(X, Y, Scale)`; стан `ITEM_PLACED` |
 | `UpdatePlacement(int x, int y, decimal scale, int itemWidth, int itemHeight)` | UC-04 | нове положення з обмеженням межами фото (AC-09) | `PlacementValues` — фактично застосовані значення |
@@ -221,11 +222,11 @@ public interface IGalleryClient   // US-1, реалізація — GalleryClien
     Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default);   // false — 404
 }
 
-public interface IStyleAnalyzer   // (S2) реалізації — Gemini (CLOUD_AI), Ollama (LOCAL_AI); назва остаточна в S2-1
+public interface IStyleAnalyzer   // (S2) реалізації — GeminiStyleAnalyzer (CLOUD_AI), Ollama (LOCAL_AI, S2-2)
 {
     AnalysisMode Mode { get; }
-    Task<ModeAvailability> CheckAvailabilityAsync(CancellationToken cancellationToken = default);   // доступний + причина
-    Task<StyleAnswer> AnalyzeStyleAsync(Photo photo, CancellationToken cancellationToken = default); // сира відповідь: стиль + впевненість або помилка
+    Task<ModeAvailability> CheckAvailabilityAsync(CancellationToken cancellationToken = default);   // (Mode, IsAvailable, Reason)
+    Task<string> AnalyzeStyleAsync(byte[] image, CancellationToken cancellationToken = default);   // image — JPEG ≤ 1024 px (StyleImage); сира відповідь моделі; збій — виняток
 }
 // Відповідь ШІ перевіряє правило R8 (StyleAcceptanceRule) поза провайдером: однаково для всіх режимів.
 
