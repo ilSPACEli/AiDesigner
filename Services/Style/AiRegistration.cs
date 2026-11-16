@@ -14,6 +14,14 @@ public static class AiRegistration
         });
         services.AddTransient<IStyleAnalyzer>(sp => sp.GetRequiredService<GeminiStyleAnalyzer>());
 
+        services.AddHttpClient<OllamaStyleAnalyzer>(client =>
+        {
+            var baseUrl = options.Ollama.BaseUrl.EndsWith('/') ? options.Ollama.BaseUrl : options.Ollama.BaseUrl + "/";
+            client.BaseAddress = new Uri(baseUrl);
+            client.Timeout = TimeSpan.FromSeconds(120);
+        });
+        services.AddTransient<IStyleAnalyzer>(sp => sp.GetRequiredService<OllamaStyleAnalyzer>());
+
         return services;
     }
 }

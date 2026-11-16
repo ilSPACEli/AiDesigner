@@ -222,7 +222,7 @@ public interface IGalleryClient   // US-1, реалізація — GalleryClien
     Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default);   // false — 404
 }
 
-public interface IStyleAnalyzer   // (S2) реалізації — GeminiStyleAnalyzer (CLOUD_AI), Ollama (LOCAL_AI, S2-2)
+public interface IStyleAnalyzer   // (S2) реалізації — GeminiStyleAnalyzer (CLOUD_AI), OllamaStyleAnalyzer (LOCAL_AI)
 {
     AnalysisMode Mode { get; }
     Task<ModeAvailability> CheckAvailabilityAsync(CancellationToken cancellationToken = default);   // (Mode, IsAvailable, Reason)
