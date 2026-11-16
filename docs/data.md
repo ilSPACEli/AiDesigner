@@ -165,6 +165,7 @@ PostgreSQL у хмарі (Neon), доступ — EF Core 8 + Npgsql. Модел
 | `MainColor` | `varchar(7)` | `#RRGGBB` |
 | `SuitableLightings` | `varchar(50)` | `DARK,MODERATE,BRIGHT` — одна текстова колонка (не масив `text[]`, щоб тести працювали на SQLite) |
 | `LicenseSource` | `varchar(500)` | NFR-05 |
+| `Style` **(S2)** | `varchar(20)`, може бути `NULL` | `LOFT` — словом, як `Type`; `NULL` — стиль не задано (R6 для предмета не діє). Обов'язковість у `catalog.json` перевіряє `CatalogLoader` |
 
 **`SavedResults`** — роботи, які користувач явно зберіг у галерею (US-1).
 
@@ -175,6 +176,19 @@ PostgreSQL у хмарі (Neon), доступ — EF Core 8 + Npgsql. Модел
 | `CatalogItemId` | `varchar(50)`, FK → `CatalogItems.Id` | `ON DELETE RESTRICT`: предмет із роботами видалити не можна |
 | `ImageData` | `bytea` | результат PNG (≤ `Gallery:MaxImageBytes`) |
 | `ThumbnailData` | `bytea` | мініатюра JPEG |
+
+**`ResultAnalyses`** **(S2, FR-21)** — аналіз, з яким збережено роботу; 1:1 із `SavedResults`.
+
+| Колонка | Тип | Примітка |
+|---|---|---|
+| `SavedResultId` | `integer`, PK, FK → `SavedResults.Id` | той самий ключ, що в роботи: у роботи не більше одного аналізу; `ON DELETE CASCADE` — робота видалена (зокрема за R7) → аналіз теж |
+| `Mode` | `varchar(20)` | `BASIC` · `LOCAL_AI` · `CLOUD_AI` — фактичний режим результату |
+| `Lighting` | `varchar(20)` | `DARK` · `MODERATE` · `BRIGHT` |
+| `Colors` | `text` | палітра JSON: `[{"hex":"#D8C3A5","hue":36,"share":61.2}, …]` |
+| `Style` | `varchar(20)`, може бути `NULL` | `NULL` — «стиль не визначено» (R8) або режим `BASIC` |
+| `Confidence` | `numeric(4,3)`, може бути `NULL` | 0–1; `NULL` — режим `BASIC` або ШІ не дав коректної відповіді |
+
+Роботи, збережені до S2, аналізу не мають. Робота й аналіз записуються в **одній транзакції** разом із витісненням за R7 (розд. 3.5).
 
 Індекси: `IX_SavedResults_CreatedAt_Id` (пошук найстаріших для R7), `IX_SavedResults_CatalogItemId` (зовнішній ключ). Фото користувача в БД не зберігається (NFR-04) — лише результат, який користувач явно зберіг.
 
@@ -192,13 +206,15 @@ PostgreSQL у хмарі (Neon), доступ — EF Core 8 + Npgsql. Модел
 
 Під час старту застосунку `Data/DatabaseInitializer` виконує два кроки:
 
+Міграції: `InitialCreate` (S1, #42) — `CatalogItems`, `SavedResults`; `AddStyleAndResultAnalysis` (S2, #60) — стовпець `CatalogItems.Style` (може бути `NULL`, наявні рядки не змінюються) і таблиця `ResultAnalyses`. Перевірено на копії БД (гілка Neon від `production`): наявні записи збереглися.
+
 1. **Міграції** — `Database.Migrate()` (лише нові, за таблицею `__EFMigrationsHistory`) **лише в `Development`**. У `Production` — ніколи: вручну `dotnet ef database update` після мержу в `main`.
 2. **Синхронізація каталогу** (#48, AC-25) — **в усіх середовищах**, зокрема в `Production`: `CatalogSeeder.Sync` читає `catalog.json` через `CatalogLoader` (та сама перевірка, що в розд. 1.3) і порівнює з таблицею за `Id`:
 
 | Ситуація | Дія |
 |---|---|
 | предмета немає в БД | додати |
-| предмет є, але змінилося хоч одне поле (`Name`, `Type`, `ImageFile`, `MainColor`, `SuitableLightings`, `LicenseSource`) | оновити змінені поля |
+| предмет є, але змінилося хоч одне поле (`Name`, `Type`, `ImageFile`, `MainColor`, `SuitableLightings`, `LicenseSource`, `Style`) | оновити змінені поля |
 | предмет є й не змінився | нічого |
 | предмет є в БД, але немає в `catalog.json` | **не видаляти** — на нього можуть посилатися збережені роботи (FK `Restrict`); попередження в лог |
 
@@ -242,7 +258,9 @@ PostgreSQL у хмарі (Neon), доступ — EF Core 8 + Npgsql. Модел
 
 **Правило R7.** Перед записом `GalleryRetentionPolicy` (окремий клас без залежності від БД, HTTP чи інтерфейсу) рахує, скільки найстаріших робіт витіснити: `max(0, кількість − MaxItems + 1)`, де кількість — до збереження нової. `EfResultRepository.AddAsync` в **одній транзакції** видаляє найстаріші (за `CreatedAt`, а за рівних дат — за `Id`) і додає нову: виконуються або обидві дії, або жодна, тож збій запису не втрачає старих робіт. Найстаріші вибираються серед тих, що були до запису, тому щойно збережена робота ніколи не видаляється.
 
-**Читання.** Список (`GET /api/results`) читає лише `Id`, `CreatedAt` і предмет, без байтів зображень. `GET .../image` і `GET .../thumbnail` читають з бази по одному стовпцю (`ImageData` чи `ThumbnailData`), тож запит мініатюри не тягне повний PNG.
+**Аналіз разом із роботою (S2, FR-21).** `POST /api/results` приймає поле `analysis`; `EfResultRepository.AddAsync` додає роботу й аналіз тим самим `SaveChanges` у тій самій транзакції, що й витіснення. Запис аналізу не вдався → немає ні роботи, ні аналізу, витіснення скасовано, відповідь `500` (AC-33; тест `ResultAnalysisTransactionTests`, перевірка тригером на копії БД — у PR #60).
+
+**Читання.** Список (`GET /api/results`) читає лише `Id`, `CreatedAt`, предмет і аналіз (для стилю на картці), без байтів зображень. `GET .../image` і `GET .../thumbnail` читають з бази по одному стовпцю (`ImageData` чи `ThumbnailData`), тож запит мініатюри не тягне повний PNG.
 
 **Відомі обмеження (S1).**
 
