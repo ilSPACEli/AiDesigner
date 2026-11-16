@@ -13,6 +13,7 @@ public class OllamaStyleAnalyzerTests
     {
         "moondream:latest" => StubHttpHandler.Json("""{"capabilities":["completion","vision"]}"""),
         "llava:latest" => StubHttpHandler.Json("""{"details":{"families":["llama","clip"]}}"""),
+        "llava-phi3:latest" => StubHttpHandler.Json("""{"capabilities":["completion"],"details":{"families":["phi3","clip"]}}"""),
         _ => StubHttpHandler.Json("""{"capabilities":["completion"]}""")
     };
 
@@ -85,6 +86,14 @@ public class OllamaStyleAnalyzerTests
     public async Task OlderOllama_ClipFamily_CountsAsVision()
     {
         var (analyzer, _) = Create(r => Ollama(r, """{"models":[{"name":"llava:latest"}]}"""));
+
+        Assert.True((await analyzer.CheckAvailabilityAsync()).IsAvailable);
+    }
+
+    [Fact]
+    public async Task CapabilitiesWithoutVision_ButClipFamily_CountsAsVision()
+    {
+        var (analyzer, _) = Create(r => Ollama(r, """{"models":[{"name":"llava-phi3:latest"}]}"""));
 
         Assert.True((await analyzer.CheckAvailabilityAsync()).IsAvailable);
     }

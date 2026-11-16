@@ -111,12 +111,15 @@ public sealed class OllamaStyleAnalyzer : IStyleAnalyzer
         using var json = await GetJsonAsync(_http.PostAsJsonAsync("api/show", new { model }, cancellationToken), cancellationToken);
         var root = json.RootElement;
 
-        if (root.TryGetProperty("capabilities", out var capabilities) && capabilities.ValueKind == JsonValueKind.Array)
-            return capabilities.EnumerateArray().Any(c => c.GetString() == "vision");
+        var vision = root.TryGetProperty("capabilities", out var capabilities)
+            && capabilities.ValueKind == JsonValueKind.Array
+            && capabilities.EnumerateArray().Any(c => c.GetString() == "vision");
 
-        return root.TryGetProperty("details", out var details)
+        var visionFamily = root.TryGetProperty("details", out var details)
             && details.TryGetProperty("families", out var families) && families.ValueKind == JsonValueKind.Array
             && families.EnumerateArray().Any(f => f.GetString() is "clip" or "mllama");
+
+        return vision || visionFamily;
     }
 
     private static async Task<JsonDocument> GetJsonAsync(Task<HttpResponseMessage> request, CancellationToken cancellationToken)
