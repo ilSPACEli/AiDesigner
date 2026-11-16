@@ -5,7 +5,7 @@ using AiDesigner.Models;
 
 namespace AiDesigner.Data;
 
-// Читає каталог предметів із catalog.json і перевіряє кожну позицію (FR-12, NFR-05).
+// Читає каталог предметів із catalog.json і перевіряє кожну позицію (FR-12, NFR-05): зокрема стиль із RoomStyle.
 // Правила добору (R1–R5) тут НЕ реалізуються — це UC-03 (клас Catalog).
 public static class CatalogLoader
 {
@@ -109,6 +109,11 @@ public static class CatalogLoader
 
             if (string.IsNullOrWhiteSpace(item.LicenseSource))
                 problems.Add($"{label}: не вказано джерело/ліцензію зображення (NFR-05).");
+
+            if (item.Style is null)
+                problems.Add($"{label}: не вказано стиль.");
+            else if (!Enum.IsDefined(item.Style.Value))
+                problems.Add($"{label}: невідомий стиль.");
         }
 
         return problems;
