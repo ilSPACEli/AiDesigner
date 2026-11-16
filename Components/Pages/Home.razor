@@ -1,6 +1,7 @@
 @page "/"
 @using AiDesigner.Models
 @using AiDesigner.Services
+@using AiDesigner.Services.Modes
 @using AiDesigner.Services.Results
 @inject DesignService Design
 @inject IJSRuntime JS
@@ -58,12 +59,53 @@
             @* 2. Аналіз (UC-02) *@
             <section class="step">
                 <h2>2. Аналіз</h2>
+
+                @* Режим аналізу (FR-18): недоступний вимкнено з причиною від сервісу. *@
+                <fieldset class="modes" disabled="@(!CanChangeMode)">
+                    <legend>Режим аналізу</legend>
+                    @foreach (var option in _modeOptions)
+                    {
+                        <label class="mode @(option.IsEnabled ? null : "unavailable")">
+                            <input type="radio" name="analysis-mode" value="@option.Mode"
+                                   checked="@(_mode == option.Mode)" disabled="@(!option.IsEnabled)"
+                                   @onchange="() => SelectMode(option.Mode)" />
+                            <span>@option.Label</span>
+                            @if (option.Reason is not null)
+                            {
+                                <small class="reason">@option.Reason</small>
+                            }
+                        </label>
+                    }
+                    <button type="button" class="btn btn-secondary btn-small" @onclick="RefreshModesAsync"
+                            disabled="@_checkingModes">
+                        @(_checkingModes ? "Перевірка…" : "Перевірити ще раз")
+                    </button>
+                </fieldset>
+                @if (AnalysisModePicker.Warning(_mode) is { } warning)
+                {
+                    <p class="hint mode-warning">@warning</p>
+                }
+
+                @* Згода перед першим аналізом у «Хмарний ШІ» (NFR-04, AC-31). *@
+                @if (_askingConsent)
+                {
+                    <div class="consent" role="dialog" aria-labelledby="consent-title">
+                        <strong id="consent-title">@AnalysisModePicker.CloudConsentTitle</strong>
+                        <p>@AnalysisModePicker.CloudConsentText</p>
+                        <div class="consent-actions">
+                            <button class="btn" @onclick="AcceptConsentAsync">@AnalysisModePicker.ConsentAcceptLabel</button>
+                            <button class="btn btn-secondary" @onclick="DeclineConsent">@AnalysisModePicker.ConsentCancelLabel</button>
+                        </div>
+                    </div>
+                }
+
                 <button class="btn" @onclick="AnalyzeAsync" disabled="@(!CanAnalyze)">
                     @(Session.IsAnalyzing ? "Аналіз…" : "Аналіз")
                 </button>
 
                 @if (Session.Analysis is { } analysis)
                 {
+                    var view = AnalysisResultView.From(analysis, _analysisNotice);
                     <div class="palette">
                         @foreach (var color in analysis.Colors)
                         {
@@ -74,7 +116,16 @@
                             </div>
                         }
                     </div>
-                    <p>Освітленість: <strong>@LightingText(analysis.Lighting)</strong></p>
+                    <p>Освітленість: <strong>@view.LightingText</strong></p>
+                    @if (view.Style is { } style)
+                    {
+                        <p class="style @(style.IsDetermined ? null : "undetermined")">@style.Text</p>
+                    }
+                    <p class="mode-used">@view.ModeText</p>
+                    @if (view.Notice is not null)
+                    {
+                        <p class="notice" role="status">@view.Notice</p>
+                    }
                 }
             </section>
 
@@ -136,10 +187,57 @@
     private bool _saving;   // лише для напису на кнопці «Зберегти»
     private bool _loadingPhoto;
 
+    // Режим аналізу (S2): що показати — вирішує AnalysisModePicker, сторінка лише зберігає вибір.
+    private AnalysisMode _mode = AnalysisModePicker.DefaultMode;
+    private IReadOnlyList<ModeOption> _modeOptions = AnalysisModePicker.Options(null);
+    private bool _checkingModes;
+    private bool _askingConsent;
+    private string? _analysisNotice;   // AC-30: режим ШІ не відповів
+
     private DesignSession Session => Design.Session;
 
     private bool CanAnalyze =>
-        Session.State == SessionState.PHOTO_LOADED && !Session.IsAnalyzing && !_loadingPhoto && !Design.IsLoadingPhoto;
+        Session.State == SessionState.PHOTO_LOADED && !Session.IsAnalyzing && !_loadingPhoto && !Design.IsLoadingPhoto
+        && !_askingConsent;
+
+    private bool CanChangeMode => !Session.IsAnalyzing && !_askingConsent;
+
+    // Доступність режимів перевіряємо після першого показу, коли вже є інтерактивне з'єднання
+    // (як у «Галереї»): перевірка Ollama й Gemini може тривати кілька секунд.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await RefreshModesAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task RefreshModesAsync()
+    {
+        if (_checkingModes)
+            return;
+
+        _checkingModes = true;
+        try
+        {
+            var modes = await Design.GetModesAsync();
+            _modeOptions = AnalysisModePicker.Options(modes);
+        }
+        catch (Exception)
+        {
+            // Перевірка не вдалася — режими ШІ вимкнені, «Аналіз без ШІ» лишається (FR-18).
+            _modeOptions = AnalysisModePicker.OptionsAfterCheckFailed();
+        }
+        finally
+        {
+            _mode = AnalysisModePicker.KeepSelectable(_mode, _modeOptions);
+            _checkingModes = false;
+        }
+    }
+
+    private void SelectMode(AnalysisMode mode) =>
+        _mode = AnalysisModePicker.KeepSelectable(mode, _modeOptions);
 
     // Поки фото читається або показується, обидва поля вибору й «Аналіз» вимкнені (UC-01).
     private bool CanPickPhoto => !Session.IsAnalyzing && !_busy && !_loadingPhoto && !Design.IsLoadingPhoto;
@@ -189,10 +287,44 @@
     private async Task AnalyzeAsync()
     {
         _message = null;
-        var outcome = await Design.AnalyzeAsync();
+        _mode = AnalysisModePicker.KeepSelectable(_mode, _modeOptions);
+
+        // «Хмарний ШІ» без згоди: фото не надсилаємо, спершу питаємо (AC-31).
+        if (AnalysisModePicker.NextStep(_mode, Design.HasCloudConsent) == AnalyzeStep.AskCloudConsent)
+        {
+            _askingConsent = true;
+            return;
+        }
+
+        await RunAnalysisAsync();
+    }
+
+    private async Task AcceptConsentAsync()
+    {
+        _askingConsent = false;
+        Design.GiveCloudConsent();   // діє до кінця сесії
+
+        // Поки питали згоду, фото могли замінити або аналіз уже не можна запустити — лише запам'ятовуємо згоду.
+        if (CanAnalyze)
+            await RunAnalysisAsync();
+    }
+
+    private void DeclineConsent()
+    {
+        _askingConsent = false;
+        ShowInfo(AnalysisModePicker.ConsentDeclinedMessage);
+    }
+
+    private async Task RunAnalysisAsync()
+    {
+        _analysisNotice = null;
+        var outcome = await Design.AnalyzeAsync(_mode);
 
         if (outcome.Status == AnalysisStatus.Success)
-            ShowInfo("Аналіз завершено.");
+        {
+            _analysisNotice = outcome.Notice;
+            ShowInfo(AnalysisResultView.Completed(outcome.Notice));
+        }
         else
             ShowError(outcome.Message);
     }
@@ -321,12 +453,4 @@
     private void ShowInfo(string text) => (_message, _isError) = (text, false);
 
     private void ShowError(string text) => (_message, _isError) = (text, true);
-
-    private static string LightingText(LightingLevel level) => level switch
-    {
-        LightingLevel.DARK => "темне",
-        LightingLevel.MODERATE => "помірне",
-        LightingLevel.BRIGHT => "яскраве",
-        _ => level.ToString()
-    };
 }
