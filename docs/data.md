@@ -165,7 +165,7 @@ PostgreSQL у хмарі (Neon), доступ — EF Core 8 + Npgsql. Модел
 | `MainColor` | `varchar(7)` | `#RRGGBB` |
 | `SuitableLightings` | `varchar(50)` | `DARK,MODERATE,BRIGHT` — одна текстова колонка (не масив `text[]`, щоб тести працювали на SQLite) |
 | `LicenseSource` | `varchar(500)` | NFR-05 |
-| `Style` **(S2)** | `varchar(20)`, може бути `NULL` | `LOFT` — словом, як `Type`; `NULL` — стиль не задано (R6 для предмета не діє). Обов'язковість стилю в `catalog.json` перевірятиме `CatalogLoader` (S2-5, #62); до того рядки без стилю завантажуються |
+| `Style` **(S2)** | `varchar(20)`, може бути `NULL` | `LOFT` — словом, як `Type`; `NULL` — стиль не задано (R6 для предмета не діє). Обов'язковість стилю в `catalog.json` перевіряє `CatalogLoader` (S2-5, #62): позиція без стилю або зі стилем не з переліку — помилка каталогу. У самій БД колонка лишається `NULL`-able |
 
 **`SavedResults`** — роботи, які користувач явно зберіг у галерею (US-1).
 
