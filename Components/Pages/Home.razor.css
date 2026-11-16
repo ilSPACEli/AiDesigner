@@ -61,3 +61,37 @@ h2 { margin: 0 0 12px; font-size: 1.15rem; }
 }
 
 .save-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* S2: вибір режиму аналізу (FR-18). */
+.modes {
+    border: 0;
+    padding: 0;
+    margin: 0 0 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.modes legend { font-weight: 600; margin-bottom: 6px; padding: 0; }
+.mode { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; cursor: pointer; }
+.mode.unavailable { color: #999; cursor: not-allowed; }
+.mode .reason { flex-basis: 100%; margin-left: 22px; color: #777; font-size: 0.85rem; }
+.btn-small { align-self: flex-start; padding: 4px 10px; font-size: 0.85rem; }
+.mode-warning { margin: 0 0 12px; }
+
+/* Згода на передачу фото Google Gemini (AC-31). */
+.consent {
+    border: 1px solid #b9d7f7;
+    background: #eef6ff;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin: 0 0 12px;
+}
+.consent p { margin: 6px 0 10px; }
+.consent-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Стиль у результаті: «Стиль не визначено» — нейтрально, не червоним (FR-19). */
+.style { margin: 6px 0 0; }
+.style.undetermined { color: #777; font-style: italic; }
+.mode-used { margin: 6px 0 0; color: #777; font-size: 0.9rem; }
+/* AC-30: режим ШІ не відповів — пояснення, не помилка. */
+.notice { margin: 8px 0 0; padding: 8px 10px; border-radius: 6px; background: #f6f7fb; border: 1px solid #e3e3e3; }

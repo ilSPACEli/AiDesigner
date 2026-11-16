@@ -52,3 +52,13 @@
     flex-wrap: wrap;
     gap: var(--space-2);
 }
+
+/* S2: стиль роботи на картці (AC-32). «Стиль не визначено» — приглушено, не червоним. */
+.style {
+    font-size: 0.9rem;
+}
+
+.style.undetermined {
+    color: var(--color-muted);
+    font-style: italic;
+}
