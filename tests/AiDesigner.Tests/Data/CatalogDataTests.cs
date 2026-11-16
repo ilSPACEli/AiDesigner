@@ -75,6 +75,19 @@ public class CatalogDataTests
         Assert.True(Math.Max(info.Width, info.Height) <= 512, "Зображення має бути зменшене до 512 px.");
     }
 
+    private const long MaxImageBytes = 500 * 1024;
+
+    [Theory]
+    [MemberData(nameof(AllItems))]
+    public void AC12_ImageFile_IsNotLargerThan500Kb(string id)
+    {
+        var path = Path.Combine(RepoPaths.WebRoot, ById(id).ImageFile);
+        var size = new FileInfo(path).Length;
+
+        Assert.True(size <= MaxImageBytes, $"«{id}»: {size / 1024} КБ, ліміт {MaxImageBytes / 1024} КБ.");
+    }
+
+
     [Theory]
     [MemberData(nameof(AllItems))]
     public void AC12_Image_HasTransparentBackground(string id)
