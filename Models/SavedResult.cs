@@ -15,4 +15,6 @@ public class SavedResult
     public byte[] ImageData { get; init; } = Array.Empty<byte>();
     
     public byte[] ThumbnailData { get; init; } = Array.Empty<byte>();
+
+    public ResultAnalysis? Analysis { get; init; }
 }
