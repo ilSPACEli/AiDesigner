@@ -13,6 +13,8 @@ public sealed class GalleryClient : IGalleryClient
 
     public const string GenericFailureMessage = "Не вдалося зберегти зображення. Спробуйте ще раз.";
 
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+
     private readonly HttpClient _http;
 
     public GalleryClient(HttpClient http)
@@ -21,16 +23,19 @@ public sealed class GalleryClient : IGalleryClient
         _http = http;
     }
 
-    public async Task<GallerySaveResult> SaveAsync(byte[] pngBytes, string catalogItemId, CancellationToken cancellationToken = default)
+    public async Task<GallerySaveResult> SaveAsync(
+        byte[] pngBytes, string catalogItemId, ResultAnalysisDto analysis, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(pngBytes);
         ArgumentException.ThrowIfNullOrWhiteSpace(catalogItemId);
+        ArgumentNullException.ThrowIfNull(analysis);
 
         using var form = new MultipartFormDataContent();
         var file = new ByteArrayContent(pngBytes);   // форма сама звільнить додані частини
         file.Headers.ContentType = new MediaTypeHeaderValue("image/png");
         form.Add(file, "image", "result.png");
         form.Add(new StringContent(catalogItemId), "catalogItemId");
+        form.Add(new StringContent(JsonSerializer.Serialize(analysis, Json)), "analysis");
 
         using var response = await _http.PostAsync(ResultsPath, form, cancellationToken);
 

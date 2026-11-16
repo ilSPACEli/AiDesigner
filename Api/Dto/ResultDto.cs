@@ -9,7 +9,9 @@ public sealed record ResultDto(
     string CatalogItemId,
     string ItemName,
     string ImageUrl,
-    string ThumbnailUrl)
+    string ThumbnailUrl,
+    string? Style = null,
+    string? AnalysisMode = null)
 {
     public static ResultDto From(SavedResult result) => new(
         result.Id,
@@ -17,5 +19,7 @@ public sealed record ResultDto(
         result.CatalogItemId,
         result.CatalogItem?.Name ?? result.CatalogItemId,
         $"/api/results/{result.Id}/image",
-        $"/api/results/{result.Id}/thumbnail");
+        $"/api/results/{result.Id}/thumbnail",
+        result.Analysis?.Style?.ToString(),
+        result.Analysis?.Mode.ToString());
 }

@@ -23,7 +23,10 @@ public class ResultEndpointsTests
 
     private static byte[] Png(int width = 40, int height = 30) => TestImages.Solid(width, height, new Rgb24(200, 100, 50));
 
-    private static MultipartFormDataContent Form(byte[]? image, string? catalogItemId = ItemId)
+    private const string AnalysisJson =
+        """{"mode":"CLOUD_AI","lighting":"MODERATE","colors":[{"hex":"#D8C3A5","hue":36,"share":61.2},{"hex":"#322D28","hue":30,"share":30.6},{"hex":"#9A8F80","hue":35,"share":8.2}],"style":"LOFT","confidence":0.82}""";
+
+    private static MultipartFormDataContent Form(byte[]? image, string? catalogItemId = ItemId, string? analysis = AnalysisJson)
     {
         var content = new MultipartFormDataContent();
         if (image is not null)
@@ -34,6 +37,8 @@ public class ResultEndpointsTests
         }
         if (catalogItemId is not null)
             content.Add(new StringContent(catalogItemId), "catalogItemId");
+        if (analysis is not null)
+            content.Add(new StringContent(analysis), "analysis");
         return content;
     }
 
@@ -314,5 +319,49 @@ public class ResultEndpointsTests
         var response = await factory.CreateClient().PostAsync("/api/results", body);
 
         await AssertProblemAsync(response, HttpStatusCode.BadRequest, ResultEndpoints.BadRequestTitle);
+    }
+
+    // ---------- S2: аналіз разом із роботою (FR-21) ----------
+
+    [Fact]
+    public async Task AC32_Post_WithAnalysis_Returns201WithStyleAndMode()
+    {
+        using var factory = new ApiFactory();
+
+        var response = await factory.CreateClient().PostAsync("/api/results", Form(Png()));
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        using var json = await ReadJsonAsync(response);
+        Assert.Equal("LOFT", json.RootElement.GetProperty("style").GetString());
+        Assert.Equal("CLOUD_AI", json.RootElement.GetProperty("analysisMode").GetString());
+    }
+
+    [Fact]
+    public async Task AC32_GetAll_ShowsStyle()
+    {
+        using var factory = new ApiFactory();
+        await PostOkAsync(factory.CreateClient());
+
+        using var json = await ReadJsonAsync(await factory.CreateClient().GetAsync("/api/results"));
+
+        Assert.Equal("LOFT", json.RootElement[0].GetProperty("style").GetString());
+    }
+
+    [Theory]
+    [InlineData(null, "Не передано результат аналізу в полі analysis.")]
+    [InlineData("{not json", "analysis:")]
+    [InlineData("null", "analysis:")]
+    [InlineData("""{"mode":"CLOUD_AI","lighting":"MODERATE","colors":[{"hex":"#D8C3A5","hue":36,"share":61.2},{"hex":"#322D28","hue":30,"share":30.6},{"hex":"#9A8F80","hue":35,"share":8.2}],"style":"GOTHIC","confidence":0.9}""", "analysis.style")]
+    [InlineData("""{"mode":"BASIC","lighting":"MODERATE","colors":[{"hex":"#D8C3A5","hue":36,"share":61.2}],"style":null,"confidence":null}""", "analysis.colors")]
+    public async Task Post_InvalidAnalysis_Returns400_NothingSaved(string? analysis, string detailStart)
+    {
+        using var factory = new ApiFactory();
+
+        var response = await factory.CreateClient().PostAsync("/api/results", Form(Png(), analysis: analysis));
+
+        await AssertProblemAsync(response, HttpStatusCode.BadRequest, ResultEndpoints.BadRequestTitle);
+        using var json = await ReadJsonAsync(response);
+        Assert.StartsWith(detailStart, json.RootElement.GetProperty("detail").GetString());
+        Assert.Equal(0, await factory.Results.CountAsync());
     }
 }

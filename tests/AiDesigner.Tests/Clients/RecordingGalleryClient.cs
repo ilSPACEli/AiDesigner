@@ -8,15 +8,16 @@ public sealed class RecordingGalleryClient : IGalleryClient
 {
     private int _nextId = 1;
 
-    public List<(byte[] Png, string CatalogItemId)> Saves { get; } = new();
+    public List<(byte[] Png, string CatalogItemId, ResultAnalysisDto Analysis)> Saves { get; } = new();
 
     public string? SaveFailureMessage { get; set; }
 
     public Exception? SaveException { get; set; }
 
-    public Task<GallerySaveResult> SaveAsync(byte[] pngBytes, string catalogItemId, CancellationToken cancellationToken = default)
+    public Task<GallerySaveResult> SaveAsync(
+        byte[] pngBytes, string catalogItemId, ResultAnalysisDto analysis, CancellationToken cancellationToken = default)
     {
-        Saves.Add((pngBytes, catalogItemId));
+        Saves.Add((pngBytes, catalogItemId, analysis));
 
         if (SaveException is not null)
             return Task.FromException<GallerySaveResult>(SaveException);

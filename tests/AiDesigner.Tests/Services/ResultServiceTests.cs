@@ -19,6 +19,15 @@ public class ResultServiceTests
     private const string ItemId = "stub-01";
     private const string ItemName = "Сірий диван";
 
+    private static readonly ResultAnalysis Analysis = new()
+    {
+        Mode = AnalysisMode.CLOUD_AI,
+        Lighting = LightingLevel.MODERATE,
+        Colors = new[] { new DominantColor { Hex = "#D8C3A5", Hue = 36, Share = 61.2m } },
+        Style = RoomStyle.LOFT,
+        Confidence = 0.82m
+    };
+
     private static byte[] Png(int width = 40, int height = 30) => TestImages.Solid(width, height, new Rgb24(200, 100, 50));
 
     private static ResultService CreateService(
@@ -30,7 +39,7 @@ public class ResultServiceTests
 
     private static async Task<SavedResult> SaveOkAsync(ResultService service)
     {
-        var outcome = await service.SaveAsync(Png(), ItemId);
+        var outcome = await service.SaveAsync(Png(), ItemId, Analysis);
         Assert.Equal(SaveStatus.Saved, outcome.Status);
         return outcome.Result!;
     }
@@ -58,7 +67,7 @@ public class ResultServiceTests
         var repository = new InMemoryResultRepository();
         var service = CreateService(repository);
 
-        var outcome = await service.SaveAsync(Png(), ItemId);
+        var outcome = await service.SaveAsync(Png(), ItemId, Analysis);
 
         Assert.Equal(SaveStatus.Saved, outcome.Status);
         Assert.True(outcome.IsSaved);
@@ -88,7 +97,7 @@ public class ResultServiceTests
     {
         var service = CreateService();
 
-        var outcome = await service.SaveAsync(Png(1000, 500), ItemId);
+        var outcome = await service.SaveAsync(Png(1000, 500), ItemId, Analysis);
 
         var info = Image.Identify(new MemoryStream(outcome.Result!.ThumbnailData));
         Assert.IsType<JpegFormat>(info.Metadata.DecodedImageFormat);
@@ -205,7 +214,7 @@ public class ResultServiceTests
         var repository = new InMemoryResultRepository();
         var service = CreateService(repository, new GalleryOptions { MaxImageBytes = png.Length - 1 });
 
-        var outcome = await service.SaveAsync(png, ItemId);
+        var outcome = await service.SaveAsync(png, ItemId, Analysis);
 
         Assert.Equal(SaveStatus.TooLarge, outcome.Status);
         Assert.Contains("МБ", outcome.Message);
@@ -218,7 +227,7 @@ public class ResultServiceTests
         var png = Png();
         var service = CreateService(options: new GalleryOptions { MaxImageBytes = png.Length });
 
-        var outcome = await service.SaveAsync(png, ItemId);
+        var outcome = await service.SaveAsync(png, ItemId, Analysis);
 
         Assert.Equal(SaveStatus.Saved, outcome.Status);
     }
@@ -229,7 +238,7 @@ public class ResultServiceTests
         // Текст із docs/api.md: «Максимальний розмір — 5 МБ.»; тут розмір вмісту не важливий, лише довжина.
         var service = CreateService();
 
-        var outcome = await service.SaveAsync(new byte[5 * 1024 * 1024 + 1], ItemId);
+        var outcome = await service.SaveAsync(new byte[5 * 1024 * 1024 + 1], ItemId, Analysis);
 
         Assert.Equal(SaveStatus.TooLarge, outcome.Status);
         Assert.Equal("Максимальний розмір — 5 МБ.", outcome.Message);
@@ -246,7 +255,7 @@ public class ResultServiceTests
         var repository = new InMemoryResultRepository();
         var service = CreateService(repository);
 
-        var outcome = await service.SaveAsync(png, ItemId);
+        var outcome = await service.SaveAsync(png, ItemId, Analysis);
 
         Assert.Equal(SaveStatus.TooLarge, outcome.Status);
         Assert.Equal(ResultService.TooManyPixelsMessage, outcome.Message);
@@ -292,7 +301,7 @@ public class ResultServiceTests
         var repository = new InMemoryResultRepository();
         var service = CreateService(repository);
 
-        var outcome = await service.SaveAsync(TestImages.RoomJpeg(64, 48), ItemId);
+        var outcome = await service.SaveAsync(TestImages.RoomJpeg(64, 48), ItemId, Analysis);
 
         Assert.Equal(SaveStatus.BadRequest, outcome.Status);
         Assert.Equal(ResultService.NotPngMessage, outcome.Message);
@@ -302,7 +311,7 @@ public class ResultServiceTests
     [Fact]
     public async Task Save_RandomBytes_IsBadRequest()
     {
-        var outcome = await CreateService().SaveAsync(new byte[] { 1, 2, 3, 4, 5 }, ItemId);
+        var outcome = await CreateService().SaveAsync(new byte[] { 1, 2, 3, 4, 5 }, ItemId, Analysis);
 
         Assert.Equal(SaveStatus.BadRequest, outcome.Status);
     }
@@ -310,7 +319,7 @@ public class ResultServiceTests
     [Fact]
     public async Task Save_EmptyData_IsBadRequest()
     {
-        var outcome = await CreateService().SaveAsync(Array.Empty<byte>(), ItemId);
+        var outcome = await CreateService().SaveAsync(Array.Empty<byte>(), ItemId, Analysis);
 
         Assert.Equal(SaveStatus.BadRequest, outcome.Status);
     }
@@ -321,7 +330,7 @@ public class ResultServiceTests
         // Сигнатура PNG є, а решта обрізана: лише сигнатури замало.
         var truncated = Png().Take(30).ToArray();
 
-        var outcome = await CreateService().SaveAsync(truncated, ItemId);
+        var outcome = await CreateService().SaveAsync(truncated, ItemId, Analysis);
 
         Assert.Equal(SaveStatus.BadRequest, outcome.Status);
     }
@@ -335,7 +344,7 @@ public class ResultServiceTests
         var repository = new InMemoryResultRepository();
         var service = CreateService(repository);
 
-        var outcome = await service.SaveAsync(Png(), itemId);
+        var outcome = await service.SaveAsync(Png(), itemId, Analysis);
 
         Assert.Equal(SaveStatus.BadRequest, outcome.Status);
         Assert.Equal(ResultService.NoItemMessage, outcome.Message);
@@ -348,7 +357,7 @@ public class ResultServiceTests
         var repository = new InMemoryResultRepository();
         var service = CreateService(repository);
 
-        var outcome = await service.SaveAsync(Png(), "no-such-item");
+        var outcome = await service.SaveAsync(Png(), "no-such-item", Analysis);
 
         Assert.Equal(SaveStatus.BadRequest, outcome.Status);
         Assert.Equal(ResultService.UnknownItemMessage, outcome.Message);
@@ -362,7 +371,7 @@ public class ResultServiceTests
     {
         var service = CreateService(new FailingRepository());
 
-        var outcome = await service.SaveAsync(Png(), ItemId);
+        var outcome = await service.SaveAsync(Png(), ItemId, Analysis);
 
         Assert.Equal(SaveStatus.Failed, outcome.Status);
         Assert.Equal(ResultService.SaveFailedMessage, outcome.Message);
@@ -375,10 +384,38 @@ public class ResultServiceTests
         var repository = new InMemoryResultRepository();
         var service = CreateService(repository, catalog: new FailingCatalog());
 
-        var outcome = await service.SaveAsync(Png(), ItemId);
+        var outcome = await service.SaveAsync(Png(), ItemId, Analysis);
 
         Assert.Equal(SaveStatus.Failed, outcome.Status);
         Assert.Equal(ResultService.SaveFailedMessage, outcome.Message);
+        Assert.Equal(0, await repository.CountAsync());
+    }
+
+    [Fact]
+    public async Task AC32_Save_StoresAnalysisWithWork()
+    {
+        var repository = new InMemoryResultRepository();
+        var service = CreateService(repository);
+
+        var outcome = await service.SaveAsync(Png(), ItemId, Analysis);
+
+        Assert.Equal(SaveStatus.Saved, outcome.Status);
+        Assert.Equal(RoomStyle.LOFT, outcome.Result!.Analysis!.Style);
+        var stored = await repository.GetByIdAsync(outcome.Result.Id);
+        Assert.Equal(AnalysisMode.CLOUD_AI, stored!.Analysis!.Mode);
+        Assert.Equal(0.82m, stored.Analysis.Confidence);
+    }
+
+    [Fact]
+    public async Task Save_WithoutAnalysis_IsBadRequest_NothingSaved()
+    {
+        var repository = new InMemoryResultRepository();
+        var service = CreateService(repository);
+
+        var outcome = await service.SaveAsync(Png(), ItemId, analysis: null);
+
+        Assert.Equal(SaveStatus.BadRequest, outcome.Status);
+        Assert.Equal(ResultService.NoAnalysisMessage, outcome.Message);
         Assert.Equal(0, await repository.CountAsync());
     }
 
@@ -389,7 +426,7 @@ public class ResultServiceTests
         cts.Cancel();
         var service = CreateService();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.SaveAsync(Png(), ItemId, cts.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.SaveAsync(Png(), ItemId, Analysis, cts.Token));
     }
 
     // ---------- Налаштування ----------

@@ -9,7 +9,8 @@ public sealed record CatalogItemDto(
     string ImageUrl,
     string MainColor,
     IReadOnlyList<string> SuitableLightings,
-    string LicenseSource)
+    string LicenseSource,
+    string? Style = null)
 {
     public static CatalogItemDto From(CatalogItem item)
     {
@@ -21,7 +22,8 @@ public sealed record CatalogItemDto(
             "/" + item.ImageFile.TrimStart('/'),
             item.MainColor,
             item.SuitableLightings.Select(level => level.ToString()).ToList(),
-            item.LicenseSource);
+            item.LicenseSource,
+            item.Style?.ToString());
     }
 
     public CatalogItem ToModel() => new()
@@ -32,6 +34,7 @@ public sealed record CatalogItemDto(
         ImageFile = ImageUrl.TrimStart('/'),
         MainColor = MainColor,
         SuitableLightings = SuitableLightings.Select(level => Enum.Parse<LightingLevel>(level)).ToArray(),
-        LicenseSource = LicenseSource
+        LicenseSource = LicenseSource,
+        Style = Style is null ? null : Enum.Parse<RoomStyle>(Style)
     };
 }

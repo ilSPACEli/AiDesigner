@@ -25,7 +25,8 @@ public sealed class EfResultRepository : IResultRepository
             CreatedAt = result.CreatedAt,
             CatalogItemId = result.CatalogItemId,
             ImageData = result.ImageData,
-            ThumbnailData = result.ThumbnailData
+            ThumbnailData = result.ThumbnailData,
+            Analysis = CopyAnalysis(result.Analysis)
         };
 
         await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
@@ -51,7 +52,7 @@ public sealed class EfResultRepository : IResultRepository
         }
         catch
         {
-            _db.Entry(entity).State = EntityState.Detached;
+            _db.ChangeTracker.Clear();
             throw;
         }
 
@@ -67,6 +68,7 @@ public sealed class EfResultRepository : IResultRepository
     public Task<SavedResult?> GetByIdAsync(int id, CancellationToken cancellationToken = default) =>
         _db.SavedResults.AsNoTracking()
             .Include(r => r.CatalogItem)
+            .Include(r => r.Analysis)
             .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
 
     public Task<byte[]?> GetImageAsync(int id, CancellationToken cancellationToken = default) =>
@@ -110,7 +112,7 @@ public sealed class EfResultRepository : IResultRepository
         IQueryable<SavedResult> ordered, CancellationToken cancellationToken)
     {
         var rows = await ordered
-            .Select(r => new { r.Id, r.CreatedAt, r.CatalogItemId, r.CatalogItem })
+            .Select(r => new { r.Id, r.CreatedAt, r.CatalogItemId, r.CatalogItem, r.Analysis })
             .ToListAsync(cancellationToken);
 
         return rows
@@ -119,8 +121,18 @@ public sealed class EfResultRepository : IResultRepository
                 Id = r.Id,
                 CreatedAt = r.CreatedAt,
                 CatalogItemId = r.CatalogItemId,
-                CatalogItem = r.CatalogItem
+                CatalogItem = r.CatalogItem,
+                Analysis = r.Analysis
             })
             .ToList();
     }
+
+    private static ResultAnalysis? CopyAnalysis(ResultAnalysis? analysis) => analysis is null ? null : new ResultAnalysis
+    {
+        Mode = analysis.Mode,
+        Lighting = analysis.Lighting,
+        Colors = analysis.Colors,
+        Style = analysis.Style,
+        Confidence = analysis.Confidence
+    };
 }
