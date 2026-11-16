@@ -8,4 +8,10 @@ public class AnalysisResult
     public LightingLevel Lighting { get; init; }
 
     public DateTime AnalyzedAt { get; init; }
+
+    public AnalysisMode Mode { get; init; } = AnalysisMode.BASIC;
+
+    public RoomStyle? Style { get; init; }
+
+    public decimal? Confidence { get; init; }
 }

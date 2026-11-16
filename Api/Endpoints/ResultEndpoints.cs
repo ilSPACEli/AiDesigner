@@ -1,4 +1,6 @@
+using System.Text.Json;
 using AiDesigner.Api.Dto;
+using AiDesigner.Models;
 using AiDesigner.Services.Results;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -10,6 +12,8 @@ public static class ResultEndpoints
     public const string TooLargeTitle = "Зображення завелике";
     public const string NotFoundTitle = "Роботу не знайдено";
     public const string SaveFailedTitle = "Помилка збереження";
+
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     public static IEndpointRouteBuilder MapResultEndpoints(this IEndpointRouteBuilder app)
     {
@@ -53,12 +57,16 @@ public static class ResultEndpoints
 
         var catalogItemId = form["catalogItemId"].ToString();
 
+        var analysis = ReadAnalysis(form["analysis"].ToString(), out var analysisError);
+        if (analysisError is not null)
+            return ApiProblem.Result(StatusCodes.Status400BadRequest, BadRequestTitle, analysisError);
+
         var length = (int)Math.Min(image.Length, (long)options.MaxImageBytes + 1);
         var bytes = new byte[length];
         await using (var stream = image.OpenReadStream())
             await stream.ReadExactlyAsync(bytes, cancellationToken);
 
-        var outcome = await service.SaveAsync(bytes, catalogItemId, cancellationToken);
+        var outcome = await service.SaveAsync(bytes, catalogItemId, analysis, cancellationToken);
 
         return outcome.Status switch
         {
@@ -96,6 +104,33 @@ public static class ResultEndpoints
     {
         var deleted = await service.DeleteAsync(id, cancellationToken);
         return deleted ? Results.NoContent() : NotFound(id);
+    }
+
+    private static ResultAnalysis? ReadAnalysis(string json, out string? error)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            error = ResultService.NoAnalysisMessage;
+            return null;
+        }
+
+        ResultAnalysisDto? dto;
+        try
+        {
+            dto = JsonSerializer.Deserialize<ResultAnalysisDto>(json, Json);
+        }
+        catch (JsonException)
+        {
+            dto = null;
+        }
+
+        if (dto is null)
+        {
+            error = "analysis: очікується JSON-об'єкт ResultAnalysisDto.";
+            return null;
+        }
+
+        return dto.ToModel(out error);
     }
 
     private static IResult Created(ResultDto dto) => Results.Created(dto.ImageUrl, dto);

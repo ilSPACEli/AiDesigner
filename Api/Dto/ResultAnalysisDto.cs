@@ -11,6 +11,17 @@ public sealed record ResultAnalysisDto(
 {
     public const decimal MinConfidence = 0.6m;
 
+    public static ResultAnalysisDto From(AnalysisResult analysis)
+    {
+        ArgumentNullException.ThrowIfNull(analysis);
+        return new ResultAnalysisDto(
+            analysis.Mode.ToString(),
+            analysis.Lighting.ToString(),
+            analysis.Colors.Select(c => new ColorDto(c.Hex, c.Hue, c.Share)).ToList(),
+            analysis.Style?.ToString(),
+            analysis.Confidence);
+    }
+
     public ResultAnalysis? ToModel(out string? error)
     {
         if (Mode is null || !Enum.GetNames<AnalysisMode>().Contains(Mode))

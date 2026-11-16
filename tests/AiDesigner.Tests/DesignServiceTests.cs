@@ -233,6 +233,23 @@ public class DesignServiceTests
     }
 
     [Fact]
+    public async Task AC32_Save_SendsSessionAnalysis()
+    {
+        var gallery = new RecordingGalleryClient();
+        var service = await CreatePlacedAsync(gallery);
+
+        await service.SaveAsync(new byte[] { 1 });
+
+        var sent = Assert.Single(gallery.Saves).Analysis;
+        var analysis = service.Session.Analysis!;
+        Assert.Equal("BASIC", sent.Mode);
+        Assert.Equal(analysis.Lighting.ToString(), sent.Lighting);
+        Assert.Equal(analysis.Colors.Select(c => c.Hex), sent.Colors!.Select(c => c.Hex));
+        Assert.Null(sent.Style);
+        Assert.Null(sent.Confidence);
+    }
+
+    [Fact]
     public async Task AC19_Save_Success_MovesSessionToSaved_AndRecordsWork()
     {
         var service = await CreatePlacedAsync(new RecordingGalleryClient());

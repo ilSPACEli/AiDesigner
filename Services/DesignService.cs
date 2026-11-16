@@ -283,13 +283,14 @@ public class DesignService
 
     public async Task<ServiceResult> SaveAsync(byte[] pngBytes, CancellationToken cancellationToken = default)
     {
-        if (Session.State != SessionState.ITEM_PLACED || Session.Placement is not { } placement)
+        if (Session.State != SessionState.ITEM_PLACED || Session.Placement is not { } placement
+            || Session.Analysis is not { } analysis)
             throw new InvalidOperationException($"Неможливо зберегти результат у стані {Session.State}.");
 
         GallerySaveResult saved;
         try
         {
-            saved = await _gallery.SaveAsync(pngBytes, placement.Item.Id, cancellationToken);
+            saved = await _gallery.SaveAsync(pngBytes, placement.Item.Id, ResultAnalysisDto.From(analysis), cancellationToken);
         }
         catch (Exception)
         {

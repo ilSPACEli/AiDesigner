@@ -1,6 +1,8 @@
 using System.Net;
 using System.Text;
+using AiDesigner.Api.Dto;
 using AiDesigner.Clients;
+using AiDesigner.Models;
 using AiDesigner.Services.Results;
 using AiDesigner.Tests.Analysis;
 using AiDesigner.Tests.Api;
@@ -14,9 +16,28 @@ public class GalleryClientTests
 {
     private const string ItemId = "sofa-01";
 
+    private static readonly ResultAnalysisDto Analysis = new(
+        "CLOUD_AI", "MODERATE",
+        new[] { new ColorDto("#D8C3A5", 36, 61.2m), new ColorDto("#322D28", 30, 30.6m), new ColorDto("#9A8F80", 35, 8.2m) },
+        "LOFT", 0.82m);
+
     private static byte[] Png() => TestImages.Solid(40, 30, new Rgb24(200, 100, 50));
 
     private static GalleryClient ClientFor(ApiFactory factory) => new(factory.CreateClient());
+
+    [Fact]
+    public async Task AC32_Save_SendsAnalysis_ResultHasStyleAndMode()
+    {
+        using var factory = new ApiFactory();
+
+        var result = await ClientFor(factory).SaveAsync(Png(), ItemId, Analysis);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("LOFT", result.Result!.Style);
+        Assert.Equal("CLOUD_AI", result.Result.AnalysisMode);
+        var stored = await factory.Results.GetByIdAsync(result.Result.Id);
+        Assert.Equal(RoomStyle.LOFT, stored!.Analysis!.Style);
+    }
 
     // ---------- AC-19: збереження ----------
 
@@ -26,7 +47,7 @@ public class GalleryClientTests
         using var factory = new ApiFactory();
         var client = ClientFor(factory);
 
-        var result = await client.SaveAsync(Png(), ItemId);
+        var result = await client.SaveAsync(Png(), ItemId, Analysis);
 
         Assert.True(result.IsSuccess);
         Assert.Equal(string.Empty, result.Message);
@@ -42,8 +63,8 @@ public class GalleryClientTests
     {
         using var factory = new ApiFactory();
         var client = ClientFor(factory);
-        var first = (await client.SaveAsync(Png(), ItemId)).Result!;
-        var second = (await client.SaveAsync(Png(), ItemId)).Result!;
+        var first = (await client.SaveAsync(Png(), ItemId, Analysis)).Result!;
+        var second = (await client.SaveAsync(Png(), ItemId, Analysis)).Result!;
 
         var all = await client.GetAllAsync();
 
@@ -58,7 +79,7 @@ public class GalleryClientTests
         using var factory = new ApiFactory();
         var client = ClientFor(factory);
 
-        var result = await client.SaveAsync(new byte[5 * 1024 * 1024 + 1], ItemId);
+        var result = await client.SaveAsync(new byte[5 * 1024 * 1024 + 1], ItemId, Analysis);
 
         Assert.False(result.IsSuccess);
         Assert.Equal("Максимальний розмір — 5 МБ.", result.Message);
@@ -70,9 +91,9 @@ public class GalleryClientTests
     {
         using var factory = new ApiFactory(new GalleryOptions { SavesPerMinute = 1 });
         var client = ClientFor(factory);
-        await client.SaveAsync(Png(), ItemId);
+        await client.SaveAsync(Png(), ItemId, Analysis);
 
-        var result = await client.SaveAsync(Png(), ItemId);
+        var result = await client.SaveAsync(Png(), ItemId, Analysis);
 
         Assert.False(result.IsSuccess);
         Assert.Equal("Ліміт збережень — 1 за хвилину. Спробуйте пізніше.", result.Message);
@@ -83,7 +104,7 @@ public class GalleryClientTests
     {
         using var factory = new ApiFactory();
 
-        var result = await ClientFor(factory).SaveAsync(TestImages.RoomJpeg(64, 48), ItemId);
+        var result = await ClientFor(factory).SaveAsync(TestImages.RoomJpeg(64, 48), ItemId, Analysis);
 
         Assert.False(result.IsSuccess);
         Assert.Equal(ResultService.NotPngMessage, result.Message);
@@ -94,7 +115,7 @@ public class GalleryClientTests
     {
         using var factory = new ApiFactory();
 
-        var result = await ClientFor(factory).SaveAsync(Png(), "no-such-item");
+        var result = await ClientFor(factory).SaveAsync(Png(), "no-such-item", Analysis);
 
         Assert.False(result.IsSuccess);
         Assert.Equal(ResultService.UnknownItemMessage, result.Message);
@@ -110,7 +131,7 @@ public class GalleryClientTests
         });
         var client = new GalleryClient(new HttpClient(handler) { BaseAddress = new Uri("http://localhost/") });
 
-        var result = await client.SaveAsync(Png(), ItemId);
+        var result = await client.SaveAsync(Png(), ItemId, Analysis);
 
         Assert.False(result.IsSuccess);
         Assert.Equal($"{GalleryClient.GenericFailureMessage} (код 502)", result.Message);
@@ -123,7 +144,7 @@ public class GalleryClientTests
     {
         using var factory = new ApiFactory();
         var client = ClientFor(factory);
-        var saved = (await client.SaveAsync(Png(), ItemId)).Result!;
+        var saved = (await client.SaveAsync(Png(), ItemId, Analysis)).Result!;
 
         var first = await client.DeleteAsync(saved.Id);
         var second = await client.DeleteAsync(saved.Id);
@@ -140,7 +161,7 @@ public class GalleryClientTests
     {
         var client = new GalleryClient(new HttpClient(new ThrowingHandler()) { BaseAddress = new Uri("http://localhost/") });
 
-        await Assert.ThrowsAsync<HttpRequestException>(() => client.SaveAsync(Png(), ItemId));
+        await Assert.ThrowsAsync<HttpRequestException>(() => client.SaveAsync(Png(), ItemId, Analysis));
     }
 
     private sealed class StubHandler(HttpResponseMessage response) : HttpMessageHandler
