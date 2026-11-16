@@ -17,7 +17,8 @@ public class CatalogLoaderTests
             ["imageFile"] = $"images/catalog/{id}.png",
             ["mainColor"] = "#82817A",
             ["suitableLightings"] = new[] { "DARK", "MODERATE" },
-            ["licenseSource"] = "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/6923"
+            ["licenseSource"] = "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/6923",
+            ["style"] = "SCANDINAVIAN"
         };
         foreach (var (key, value) in overrides)
         {
@@ -47,6 +48,7 @@ public class CatalogLoaderTests
         Assert.Equal("#82817A", sofa.MainColor);
         Assert.Equal(new[] { LightingLevel.DARK, LightingLevel.MODERATE }, sofa.SuitableLightings);
         Assert.StartsWith("pngimg.com", sofa.LicenseSource);
+        Assert.Equal(RoomStyle.SCANDINAVIAN, sofa.Style);
         Assert.Equal(ItemType.LAMP, items[1].Type);
     }
 
@@ -140,6 +142,7 @@ public class CatalogLoaderTests
     [InlineData("imageFile")]
     [InlineData("mainColor")]
     [InlineData("suitableLightings")]
+    [InlineData("style")]
     public void AC12_MissingRequiredField_IsReported(string field)
     {
         var ex = Assert.Throws<CatalogException>(() => CatalogLoader.Parse(Json(Item("sofa-01", (field, null)))));
@@ -186,12 +189,84 @@ public class CatalogLoaderTests
             ImageFile = "images/catalog/x.png",
             MainColor = "blue",
             SuitableLightings = new[] { LightingLevel.DARK },
-            LicenseSource = "pngimg.com"
+            LicenseSource = "pngimg.com",
+            Style = RoomStyle.LOFT
         };
 
         var problems = CatalogLoader.Validate(new[] { broken });
 
         Assert.Equal(3, problems.Count);   // id, назва, колір — одним списком, а не по одній помилці
+    }
+
+    // ---------- AC-12 (S2-5): стиль ----------
+
+    public static IEnumerable<object[]> AllStyles() =>
+        Enum.GetNames<RoomStyle>().Select(name => new object[] { name });
+
+    [Theory]
+    [MemberData(nameof(AllStyles))]
+    public void AC12_EveryRoomStyle_IsAccepted(string style)
+    {
+        var items = CatalogLoader.Parse(Json(Item("sofa-01", ("style", style))));
+
+        Assert.Equal(Enum.Parse<RoomStyle>(style), items[0].Style);
+    }
+
+    [Fact]
+    public void AC12_MissingStyle_IsReported()
+    {
+        var ex = Assert.Throws<CatalogException>(() => CatalogLoader.Parse(Json(Item("sofa-01", ("style", null)))));
+
+        Assert.Contains("не вказано стиль", ex.Message);
+        Assert.Contains("«sofa-01»", ex.Message);
+    }
+
+    [Fact]
+    public void AC12_NullStyle_IsReported()
+    {
+        // Явне "style": null — те саме, що відсутнє поле.
+        var json = "[" + JsonSerializer.Serialize(Item("sofa-01", ("style", null))).TrimEnd('}') + ",\"style\":null}]";
+
+        var ex = Assert.Throws<CatalogException>(() => CatalogLoader.Parse(json));
+        Assert.Contains("не вказано стиль", ex.Message);
+    }
+
+    [Theory]
+    [InlineData("Футуризм")]
+    [InlineData("FUTURISM")]
+    [InlineData("Скандинавський")]   // відображувана назва, а не значення enum
+    public void AC12_UnknownStyle_ThrowsCatalogException(string style)
+    {
+        Assert.Throws<CatalogException>(() => CatalogLoader.Parse(Json(Item("sofa-01", ("style", style)))));
+    }
+
+    [Fact]
+    public void AC12_StyleAsNumber_IsRejected()
+    {
+        // Без заборони чисел "style": 99 став би неіснуючим (RoomStyle)99.
+        Assert.Throws<CatalogException>(() => CatalogLoader.Parse(Json(Item("sofa-01", ("style", 99)))));
+    }
+
+    [Fact]
+    public void AC12_Validate_ReportsMissingAndUndefinedStyle()
+    {
+        CatalogItem Make(string id, RoomStyle? style) => new()
+        {
+            Id = id,
+            Name = "Диван",
+            Type = ItemType.SOFA,
+            ImageFile = $"images/catalog/{id}.png",
+            MainColor = "#82817A",
+            SuitableLightings = new[] { LightingLevel.DARK },
+            LicenseSource = "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/6923",
+            Style = style
+        };
+
+        var problems = CatalogLoader.Validate(new[] { Make("sofa-01", null), Make("sofa-02", (RoomStyle)99) });
+
+        Assert.Equal(2, problems.Count);
+        Assert.Contains("не вказано стиль", problems[0]);
+        Assert.Contains("невідомий стиль", problems[1]);
     }
 
     // ---------- AC-18 / NFR-05: ліцензія ----------

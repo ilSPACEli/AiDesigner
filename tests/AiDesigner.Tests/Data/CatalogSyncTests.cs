@@ -69,7 +69,8 @@ public class CatalogSyncTests
             ImageFile = "images/catalog/test-new-01.png",
             MainColor = "#ABCDEF",
             SuitableLightings = new[] { LightingLevel.MODERATE },
-            LicenseSource = "test, CC0, https://example.com"
+            LicenseSource = "test, CC0, https://example.com",
+            Style = RoomStyle.MODERN
         };
         using var catalog = new TempCatalog(RealCatalog().Append(newItem));
 
@@ -83,6 +84,57 @@ public class CatalogSyncTests
         using var check = testDb.CreateContext();
         Assert.Equal(CatalogCount + 1, check.CatalogItems.Count());
         Assert.Equal("Нова лампа", check.CatalogItems.Single(i => i.Id == "test-new-01").Name);
+    }
+
+    // ---------- AC-35 (#62): стилі з catalog.json потрапляють у БД ----------
+
+    [Fact]
+    public void AC35_EmptyDb_Sync_StoresStylesFromJson()
+    {
+        using var testDb = new TestDb();
+        using (var db = testDb.CreateContext())
+            CatalogSeeder.Sync(db, CatalogPath);
+
+        using var check = testDb.CreateContext();
+        var stored = check.CatalogItems.ToDictionary(i => i.Id, i => i.Style);
+
+        Assert.Equal(CatalogCount, stored.Count);
+        foreach (var item in RealCatalog())
+        {
+            Assert.NotNull(item.Style);
+            Assert.Equal(item.Style, stored[item.Id]);
+        }
+    }
+
+    [Fact]
+    public void AC35_ItemsStoredWithoutStyle_GetStyleOnNextSync()
+    {
+        // Сценарій оновлення: у БД лежить каталог v1.0.0 (без стилів), у JSON — уже зі стилями.
+        using var testDb = new TestDb();
+        using (var db = testDb.CreateContext())
+        {
+            db.CatalogItems.AddRange(RealCatalog().Select(item => new CatalogItem
+            {
+                Id = item.Id,
+                Name = item.Name,
+                Type = item.Type,
+                ImageFile = item.ImageFile,
+                MainColor = item.MainColor,
+                SuitableLightings = item.SuitableLightings,
+                LicenseSource = item.LicenseSource
+            }));
+            db.SaveChanges();
+        }
+
+        CatalogSyncResult result;
+        using (var db = testDb.CreateContext())
+            result = CatalogSeeder.Sync(db, CatalogPath);
+
+        Assert.Equal(0, result.Added);
+        Assert.Equal(CatalogCount, result.Updated);
+
+        using var check = testDb.CreateContext();
+        Assert.All(check.CatalogItems.ToList(), item => Assert.NotNull(item.Style));
     }
 
     [Fact]
@@ -234,7 +286,8 @@ public class CatalogSyncTests
         ImageFile = item.ImageFile,
         MainColor = mainColor ?? item.MainColor,
         SuitableLightings = lightings ?? item.SuitableLightings,
-        LicenseSource = item.LicenseSource
+        LicenseSource = item.LicenseSource,
+        Style = item.Style
     };
 
     // Тимчасовий catalog.json у форматі справжнього (camelCase, enum словами); видаляється в Dispose.
