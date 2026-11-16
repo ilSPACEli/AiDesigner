@@ -97,6 +97,7 @@ public class GeminiStyleAnalyzerTests
         Assert.Equal(Convert.ToBase64String(image), parts[1].GetProperty("inlineData").GetProperty("data").GetString());
         var config = json.RootElement.GetProperty("generationConfig");
         Assert.Equal("application/json", config.GetProperty("responseMimeType").GetString());
+        Assert.False(config.TryGetProperty("thinkingConfig", out _));
         var styles = config.GetProperty("responseSchema").GetProperty("properties").GetProperty("style").GetProperty("enum")
             .EnumerateArray().Select(e => e.GetString());
         Assert.Equal(Enum.GetNames<RoomStyle>(), styles);
@@ -108,6 +109,21 @@ public class GeminiStyleAnalyzerTests
         var (analyzer, _) = Create(_ => StubHttpHandler.Json("""{"promptFeedback":{"blockReason":"SAFETY"}}"""));
 
         Assert.Equal(string.Empty, await analyzer.AnalyzeStyleAsync(new byte[] { 1 }));
+    }
+
+    [Fact]
+    public async Task Analyze_ModelNotFound_ExceptionHasStatusAndGoogleMessage()
+    {
+        var (analyzer, _) = Create(_ => StubHttpHandler.Json(
+            """{"error":{"code":404,"message":"models/gemini-2.5-flash is no longer available","status":"NOT_FOUND"}}""",
+            HttpStatusCode.NotFound));
+
+        var ex = await Assert.ThrowsAsync<HttpRequestException>(() => analyzer.AnalyzeStyleAsync(new byte[] { 1 }));
+
+        Assert.Equal(HttpStatusCode.NotFound, ex.StatusCode);
+        Assert.Contains("404", ex.Message);
+        Assert.Contains("no longer available", ex.Message);
+        Assert.DoesNotContain(Key, ex.Message);
     }
 
     [Fact]

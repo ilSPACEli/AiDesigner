@@ -13,14 +13,16 @@ public class DesignService
     private readonly ISuggestionClient _suggestions;
     private readonly IGalleryClient _gallery;
     private readonly IReadOnlyList<IStyleAnalyzer> _styleAnalyzers;
+    private readonly ILogger<DesignService>? _logger;
 
     public DesignService(IPhotoAnalyzer analyzer, ISuggestionClient suggestions, IGalleryClient gallery,
-        IEnumerable<IStyleAnalyzer>? styleAnalyzers = null)
+        IEnumerable<IStyleAnalyzer>? styleAnalyzers = null, ILogger<DesignService>? logger = null)
     {
         _analyzer = analyzer;
         _suggestions = suggestions;
         _gallery = gallery;
         _styleAnalyzers = styleAnalyzers?.ToList() ?? new List<IStyleAnalyzer>();
+        _logger = logger;
     }
 
     public DesignSession Session { get; } = new();
@@ -244,7 +246,10 @@ public class DesignService
     private async Task<AnalysisOutcome> AddStyleAsync(AnalysisResult basic, AnalysisMode mode, Photo photo, CancellationToken cancellationToken)
     {
         if (FindStyleAnalyzer(mode) is not { } analyzer)
+        {
+            _logger?.LogWarning("Режим {Mode}: провайдера ШІ не налаштовано, показано результат без ШІ.", mode);
             return AnalysisOutcome.Success(basic, StyleFailedNotice(mode));
+        }
 
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         try
@@ -270,15 +275,17 @@ public class DesignService
         catch (TimeoutException)
         {
             timeoutCts.Cancel();
+            _logger?.LogWarning("Режим {Mode}: ШІ не відповів за {Seconds} с, показано результат без ШІ.", mode, StyleTimeout.TotalSeconds);
             return AnalysisOutcome.Success(basic, StyleTimeoutNotice(mode));
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return AnalysisOutcome.Error("Аналіз скасовано.");
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             timeoutCts.Cancel();
+            _logger?.LogWarning(ex, "Режим {Mode}: помилка ШІ, показано результат без ШІ.", mode);
             return AnalysisOutcome.Success(basic, StyleFailedNotice(mode));
         }
     }
