@@ -1,4 +1,5 @@
 using AiDesigner.Models;
+using AiDesigner.Services.Style;
 
 namespace AiDesigner.Api.Dto;
 
@@ -9,7 +10,7 @@ public sealed record ResultAnalysisDto(
     string? Style,
     decimal? Confidence)
 {
-    public const decimal MinConfidence = 0.6m;
+    public const decimal MinConfidence = StyleAcceptanceRule.MinConfidence;
 
     public static ResultAnalysisDto From(AnalysisResult analysis)
     {
