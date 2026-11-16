@@ -10,7 +10,8 @@
       "MODERATE",
       "BRIGHT"
     ],
-    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/6923"
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/6923",
+    "style": "SCANDINAVIAN"
   },
   {
     "id": "sofa-02",
@@ -23,7 +24,8 @@
       "MODERATE",
       "BRIGHT"
     ],
-    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/6913"
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/6913",
+    "style": "CLASSIC"
   },
   {
     "id": "sofa-03",
@@ -36,7 +38,8 @@
       "MODERATE",
       "BRIGHT"
     ],
-    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/6916"
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/6916",
+    "style": "SCANDINAVIAN"
   },
   {
     "id": "sofa-04",
@@ -49,7 +52,47 @@
       "MODERATE",
       "BRIGHT"
     ],
-    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/6949"
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/6949",
+    "style": "MODERN"
+  },
+  {
+    "id": "sofa-05",
+    "name": "Чорний шкіряний диван",
+    "type": "SOFA",
+    "imageFile": "images/catalog/sofa-05.png",
+    "mainColor": "#2A2927",
+    "suitableLightings": [
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/6966",
+    "style": "LOFT"
+  },
+  {
+    "id": "sofa-06",
+    "name": "Світлий диван з м'якими підлокітниками",
+    "type": "SOFA",
+    "imageFile": "images/catalog/sofa-06.png",
+    "mainColor": "#D8D2CB",
+    "suitableLightings": [
+      "DARK",
+      "MODERATE"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/6958",
+    "style": "MINIMALISM"
+  },
+  {
+    "id": "sofa-07",
+    "name": "Червоний кутовий диван",
+    "type": "SOFA",
+    "imageFile": "images/catalog/sofa-07.png",
+    "mainColor": "#7A1010",
+    "suitableLightings": [
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/6962",
+    "style": "MODERN"
   },
   {
     "id": "armchair-01",
@@ -61,7 +104,8 @@
       "DARK",
       "MODERATE"
     ],
-    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/7033"
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/7033",
+    "style": "SCANDINAVIAN"
   },
   {
     "id": "armchair-02",
@@ -74,7 +118,8 @@
       "MODERATE",
       "BRIGHT"
     ],
-    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/7038"
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/7038",
+    "style": "CLASSIC"
   },
   {
     "id": "armchair-03",
@@ -87,7 +132,8 @@
       "MODERATE",
       "BRIGHT"
     ],
-    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/7035"
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/7035",
+    "style": "MODERN"
   },
   {
     "id": "armchair-04",
@@ -99,7 +145,49 @@
       "MODERATE",
       "BRIGHT"
     ],
-    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/7026"
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/7026",
+    "style": "CLASSIC"
+  },
+  {
+    "id": "armchair-05",
+    "name": "Коричневе шкіряне крісло",
+    "type": "ARMCHAIR",
+    "imageFile": "images/catalog/armchair-05.png",
+    "mainColor": "#311813",
+    "suitableLightings": [
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/7012",
+    "style": "LOFT"
+  },
+  {
+    "id": "armchair-06",
+    "name": "Крісло з вигнутою спинкою на металевих ніжках",
+    "type": "ARMCHAIR",
+    "imageFile": "images/catalog/armchair-06.png",
+    "mainColor": "#BBB499",
+    "suitableLightings": [
+      "DARK",
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/7062",
+    "style": "MODERN"
+  },
+  {
+    "id": "armchair-07",
+    "name": "Плетене крісло-гойдалка з ротангу",
+    "type": "ARMCHAIR",
+    "imageFile": "images/catalog/armchair-07.png",
+    "mainColor": "#C28D5A",
+    "suitableLightings": [
+      "DARK",
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/53",
+    "style": "BOHO"
   },
   {
     "id": "table-01",
@@ -112,7 +200,8 @@
       "MODERATE",
       "BRIGHT"
     ],
-    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/6973"
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/6973",
+    "style": "CLASSIC"
   },
   {
     "id": "table-02",
@@ -124,7 +213,8 @@
       "MODERATE",
       "BRIGHT"
     ],
-    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/6976"
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/6976",
+    "style": "MINIMALISM"
   },
   {
     "id": "table-03",
@@ -137,7 +227,62 @@
       "MODERATE",
       "BRIGHT"
     ],
-    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/6972"
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/6972",
+    "style": "CLASSIC"
+  },
+  {
+    "id": "table-04",
+    "name": "Стіл із дерев'яною стільницею на чорних ніжках",
+    "type": "TABLE",
+    "imageFile": "images/catalog/table-04.png",
+    "mainColor": "#9B6C3E",
+    "suitableLightings": [
+      "DARK",
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/6978",
+    "style": "LOFT"
+  },
+  {
+    "id": "table-05",
+    "name": "Білий круглий стіл на хромованій ніжці",
+    "type": "TABLE",
+    "imageFile": "images/catalog/table-05.png",
+    "mainColor": "#D7D7D7",
+    "suitableLightings": [
+      "DARK",
+      "MODERATE"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/7007",
+    "style": "MINIMALISM"
+  },
+  {
+    "id": "table-06",
+    "name": "Журнальний столик із чорною стільницею",
+    "type": "TABLE",
+    "imageFile": "images/catalog/table-06.png",
+    "mainColor": "#3D3B3A",
+    "suitableLightings": [
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/6981",
+    "style": "MODERN"
+  },
+  {
+    "id": "table-07",
+    "name": "Стіл зі світлого дерева",
+    "type": "TABLE",
+    "imageFile": "images/catalog/table-07.png",
+    "mainColor": "#C6A389",
+    "suitableLightings": [
+      "DARK",
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/6969",
+    "style": "SCANDINAVIAN"
   },
   {
     "id": "lamp-01",
@@ -149,7 +294,8 @@
       "DARK",
       "MODERATE"
     ],
-    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/108735"
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/108735",
+    "style": "MINIMALISM"
   },
   {
     "id": "lamp-02",
@@ -161,7 +307,8 @@
       "MODERATE",
       "BRIGHT"
     ],
-    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/108737"
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/108737",
+    "style": "MODERN"
   },
   {
     "id": "lamp-03",
@@ -173,7 +320,8 @@
       "DARK",
       "MODERATE"
     ],
-    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/108716"
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/108716",
+    "style": "CLASSIC"
   },
   {
     "id": "lamp-04",
@@ -185,7 +333,47 @@
       "DARK",
       "MODERATE"
     ],
-    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/108700"
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/108700",
+    "style": "MINIMALISM"
+  },
+  {
+    "id": "lamp-05",
+    "name": "Настільна лампа з бежевим плафоном",
+    "type": "LAMP",
+    "imageFile": "images/catalog/lamp-05.png",
+    "mainColor": "#E6C487",
+    "suitableLightings": [
+      "DARK",
+      "MODERATE"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/108692",
+    "style": "LOFT"
+  },
+  {
+    "id": "lamp-06",
+    "name": "Настільна лампа з білим плафоном",
+    "type": "LAMP",
+    "imageFile": "images/catalog/lamp-06.png",
+    "mainColor": "#E7E6E6",
+    "suitableLightings": [
+      "DARK",
+      "MODERATE"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/108726",
+    "style": "MINIMALISM"
+  },
+  {
+    "id": "lamp-07",
+    "name": "Дугоподібний торшер",
+    "type": "LAMP",
+    "imageFile": "images/catalog/lamp-07.png",
+    "mainColor": "#F3E5CF",
+    "suitableLightings": [
+      "DARK",
+      "MODERATE"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/108714",
+    "style": "MODERN"
   },
   {
     "id": "shelf-01",
@@ -198,7 +386,8 @@
       "MODERATE",
       "BRIGHT"
     ],
-    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/107143"
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/107143",
+    "style": "SCANDINAVIAN"
   },
   {
     "id": "shelf-02",
@@ -210,7 +399,8 @@
       "MODERATE",
       "BRIGHT"
     ],
-    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/107110"
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/107110",
+    "style": "LOFT"
   },
   {
     "id": "shelf-03",
@@ -223,7 +413,49 @@
       "MODERATE",
       "BRIGHT"
     ],
-    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/85372"
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/85372",
+    "style": "MODERN"
+  },
+  {
+    "id": "shelf-04",
+    "name": "Темний відкритий стелаж",
+    "type": "SHELF",
+    "imageFile": "images/catalog/shelf-04.png",
+    "mainColor": "#453529",
+    "suitableLightings": [
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/107146",
+    "style": "LOFT"
+  },
+  {
+    "id": "shelf-05",
+    "name": "Білий відкритий стелаж",
+    "type": "SHELF",
+    "imageFile": "images/catalog/shelf-05.png",
+    "mainColor": "#A6A5A3",
+    "suitableLightings": [
+      "DARK",
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/107143",
+    "style": "MINIMALISM"
+  },
+  {
+    "id": "shelf-06",
+    "name": "Стелаж-драбина зі світлого дерева",
+    "type": "SHELF",
+    "imageFile": "images/catalog/shelf-06.png",
+    "mainColor": "#D59D61",
+    "suitableLightings": [
+      "DARK",
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/107141",
+    "style": "BOHO"
   },
   {
     "id": "plant-01",
@@ -236,7 +468,8 @@
       "MODERATE",
       "BRIGHT"
     ],
-    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/104945"
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/104945",
+    "style": "SCANDINAVIAN"
   },
   {
     "id": "plant-02",
@@ -248,7 +481,8 @@
       "MODERATE",
       "BRIGHT"
     ],
-    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/104840"
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/104840",
+    "style": "BOHO"
   },
   {
     "id": "plant-03",
@@ -261,7 +495,47 @@
       "MODERATE",
       "BRIGHT"
     ],
-    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/104940"
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/104940",
+    "style": "BOHO"
+  },
+  {
+    "id": "plant-04",
+    "name": "Кактус у бетонному горщику",
+    "type": "PLANT",
+    "imageFile": "images/catalog/plant-04.png",
+    "mainColor": "#435221",
+    "suitableLightings": [
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/23621",
+    "style": "LOFT"
+  },
+  {
+    "id": "plant-05",
+    "name": "Кактуси в дерев'яному ящику",
+    "type": "PLANT",
+    "imageFile": "images/catalog/plant-05.png",
+    "mainColor": "#456E15",
+    "suitableLightings": [
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/23608",
+    "style": "BOHO"
+  },
+  {
+    "id": "plant-06",
+    "name": "Кактус у металевому відрі",
+    "type": "PLANT",
+    "imageFile": "images/catalog/plant-06.png",
+    "mainColor": "#5B6D34",
+    "suitableLightings": [
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/23610",
+    "style": "SCANDINAVIAN"
   },
   {
     "id": "rug-01",
@@ -273,7 +547,8 @@
       "DARK",
       "MODERATE"
     ],
-    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/57716"
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/57716",
+    "style": "LOFT"
   },
   {
     "id": "rug-02",
@@ -285,7 +560,8 @@
       "MODERATE",
       "BRIGHT"
     ],
-    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/21225"
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/21225",
+    "style": "BOHO"
   },
   {
     "id": "rug-03",
@@ -297,6 +573,34 @@
       "MODERATE",
       "BRIGHT"
     ],
-    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/21218"
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/21218",
+    "style": "BOHO"
+  },
+  {
+    "id": "rug-04",
+    "name": "Червоний узорний килим",
+    "type": "RUG",
+    "imageFile": "images/catalog/rug-04.png",
+    "mainColor": "#79382E",
+    "suitableLightings": [
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/57666",
+    "style": "CLASSIC"
+  },
+  {
+    "id": "rug-05",
+    "name": "Килим-кілім із геометричним візерунком",
+    "type": "RUG",
+    "imageFile": "images/catalog/rug-05.png",
+    "mainColor": "#CD7E7D",
+    "suitableLightings": [
+      "DARK",
+      "MODERATE",
+      "BRIGHT"
+    ],
+    "licenseSource": "pngimg.com, CC BY-NC 4.0, https://pngimg.com/image/57686",
+    "style": "BOHO"
   }
 ]
