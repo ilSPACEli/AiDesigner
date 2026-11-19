@@ -150,7 +150,7 @@ classDiagram
 
 Шаблон **Фасад** (#52, коміти `refactor:`). `Gallery.razor` звертається лише до `GalleryFacade`; клієнт, перетворення карток, тексти помилок і часовий пояс — за фасадом. Обробка помилок, що повторювалась у кожній дії сторінки, — в одному місці. UI-помічники перенесено із серверного шару `Services/Results`, `Services/Modes` у клієнтський: `Clients/Gallery` (галерея) і `Clients/Design` (сторінка «Дизайн»). Поведінку зафіксовано тестами S3-2 (`GalleryScenarioTests`) — вони проходять до й після.
 
-Показано лише змінене; `GalleryClient`, `ResultEndpoints`, `ResultService`, репозиторії — без змін (розд. 1).
+Показано лише змінене. Нова операція S3-3 (FR-22, коміт `feat:`) — параметр `style` по всьому ланцюжку: `GalleryFacade.LoadAsync` → `IGalleryClient.GetAllAsync` → `GET /api/results?style=` → `ResultService` → `IResultRepository` (`EfResultRepository`, `InMemoryResultRepository`). Невідомий стиль — `400` (AC-38); робіт стилю немає — `Notice` з назвою стилю (AC-37).
 
 ```mermaid
 classDiagram
@@ -166,13 +166,15 @@ classDiagram
     }
     class GalleryFacade {
         -client: IGalleryClient
-        +LoadAsync(timeZoneId: string) GalleryLoadResult
+        +LoadAsync(timeZoneId: string, style: RoomStyle) GalleryLoadResult
         +DeleteAsync(id: int) GalleryDeleteResult
+        +NoWorksOfStyleMessage(style: RoomStyle)$ string
     }
     class GalleryLoadResult {
         <<record>>
         +Items: GalleryItemView[]
         +Error: string
+        +Notice: string
         +IsSuccess: bool
     }
     class GalleryDeleteResult {
@@ -189,8 +191,22 @@ classDiagram
     }
     class IGalleryClient {
         <<interface>>
-        +GetAllAsync() ResultDto[]
+        +GetAllAsync(style: RoomStyle) ResultDto[]
         +DeleteAsync(id: int) bool
+    }
+    class GalleryClient {
+        +GetAllAsync(style: RoomStyle) ResultDto[]
+    }
+    class ResultEndpoints {
+        <<static>>
+        -GetAllAsync(style: string, service) IResult
+    }
+    class ResultService {
+        +GetAllAsync(style: RoomStyle) SavedResult[]
+    }
+    class IResultRepository {
+        <<interface>>
+        +GetAllAsync(style: RoomStyle) SavedResult[]
     }
     class GalleryItemView {
         <<record>>
@@ -217,6 +233,10 @@ classDiagram
     GalleryFacade ..> BrowserTimeZone : часовий пояс
     GalleryDeleteResult --> GalleryDeleteStatus
     GalleryItemView ..> StyleLabel
+    GalleryClient ..|> IGalleryClient
+    GalleryClient ..> ResultEndpoints : GET /api/results?style=
+    ResultEndpoints ..> ResultService
+    ResultService --> IResultRepository
 ```
 
 | Було | Стало |
@@ -225,8 +245,6 @@ classDiagram
 | `try/catch` у `LoadAsync` і `DeleteAsync` сторінки | у `GalleryFacade`; сторінка отримує готовий текст (`Error`) |
 | `Services/Results`: `GalleryItemView`, `GalleryErrorMessages`, `BrowserTimeZone`, `DesignDownloadName` | `Clients/Gallery`: перші три; `Clients/Design`: `DesignDownloadName` |
 | `Services/Modes`: `AnalysisModePicker`, `AnalysisResultView`, `StyleLabel` | `Clients/Design` |
-
-*Фільтр за стилем (S3-3) додається новим методом фасаду — доповнюється в S3-3.*
 
 ## Позначення
 
