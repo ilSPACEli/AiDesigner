@@ -24,6 +24,7 @@
 | FR-19 Стиль кімнати (R8) | US-2 (#20); UC-02 | AC-27, AC-28 | Правило R8; enum `RoomStyle`; JSON-схема відповіді ШІ | `StyleAcceptanceRule` (R8); промпт; провайдери ШІ; показ стилю в `Home.razor` | `R8_*`, `AC28_*` (модульні, контрольні приклади #20); AC-27 — ручна на контрольному фото — S2 |
 | FR-20 Добір зі стилем (R6) | US-2 (#20); UC-03 | AC-29 | Правило R6; [послідовність UC-03](models/sequences/UC-03-onyshchuk.md) | `StyleMatchRule` (R6); `SuggestionRules` (після R4); стиль кімнати в `AnalysisRequestDto` | `R6_*`, `AC29_*`; наявні `R1_*`…`R5_*` без змін — S2 |
 | FR-21 Аналіз разом із роботою | US-2 (#20); UC-04 (розширення) | AC-32, AC-33 | Class `ResultAnalysis` (1:1 з `SavedResult`); міграція `AddStyleAndResultAnalysis`; [послідовність UC-04](models/sequences/UC-04-semeniuta.md) | `ResultService` + `EfResultRepository` (одна транзакція); `ResultDto` зі стилем; картка в `Gallery.razor` | `AC32_*`, `AC33_*` (інтеграційні, SQLite); AC-33 — тригер на копії БД (гілка Neon) — S2 |
+| FR-22 Фільтр галереї за стилем | US-4 (#…) | AC-36, AC-37, AC-38 | [implementation.md](models/implementation.md) (`GalleryFacade`); [api.md](api.md) `GET /api/results?style=` | `GalleryFacade.LoadAsync(zone, style)`; `GalleryClient.GetAllAsync(style)`; `ResultEndpoints` → `ResultService` → `IResultRepository.GetAllAsync(style)`; список стилів у `Gallery.razor` | AC-36, AC-38 — тести ендпоінта й контрактні тести репозиторію (S3-4); AC-37 — тест фасаду + ручна з UI — S3 |
 | NFR-01 Аналіз ≤ 30 с | UC-02 (E1) | AC-14 | Activity UC-02 (рішення «не довше 30 с?») | `PixelSampler` (зменшення до 200 px); `DesignService.RunAnalyzerAsync` (тайм-аут 30 с) | `AC14_*` (`PerformanceTests`): 20 з 20 запусків ≤ 30 с, найдовший 93 мс — **Пройдено** |
 | NFR-02 Відгук ≤ 200 мс | UC-04 | AC-15 | — (проєктне рішення на етапі реалізації) | `photoCanvas.js`: під час руху — лише локальне обмеження, виклик C# один раз після відпускання | ручна, DevTools → Performance: INP 53/63 мс, найдовша задача 6,4 мс, [acceptance.md 2.6](acceptance.md#26-ac-15--відгук--200-мс) — **Пройдено** |
 | NFR-03 Сценарій ≤ 5 хв | UC-01…UC-04 | AC-16 | Use Case Diagram | сторінка `Home.razor` (кроки 1–4) | тест на 3 користувачах, [acceptance.md 2.7](acceptance.md#27-ac-16--сценарій-без-інструкції--5-хв) — **Пройдено** (3 з 3) |
@@ -36,7 +37,7 @@
 
 **Пояснення порожніх клітинок.** У NFR-02 проєктного артефакту немає: вимога стосується поведінки інтерфейсу й перевіряється лише на реалізації, тому в UML-моделі її показувати немає сенсу.
 
-**Зміни вимог після baseline.** CR-01…CR-03 зв'язків у матриці не змінюють. CR-04 додає рядки FR-18…FR-21; CR-05 додає AC-31 до NFR-04; CR-06 оновлює AC-12 і додає AC-34, AC-35 до FR-12. Перелік і вплив — у [requirements.md](requirements.md#зміни-після-baseline).
+**Зміни вимог після baseline.** CR-01…CR-03 зв'язків у матриці не змінюють. CR-04 додає рядки FR-18…FR-21; CR-05 додає AC-31 до NFR-04; CR-06 оновлює AC-12 і додає AC-34, AC-35 до FR-12; CR-07 додає рядок FR-22. Перелік і вплив — у [requirements.md](requirements.md#зміни-після-baseline).
 
 **Відоме обмеження S1** (#53): результат із великого фото (~10 МБ) не зберігається в галерею — PNG більший за ліміт NFR-07; у беклозі.
 
