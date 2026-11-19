@@ -1,4 +1,4 @@
-using AiDesigner.Services.Results;
+using AiDesigner.Clients.Design;
 
 namespace AiDesigner.Tests.Services;
 

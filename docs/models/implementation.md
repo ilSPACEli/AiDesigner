@@ -2,7 +2,7 @@
 
 **Що показує:** фактичні класи коду (сторінки, клієнти, ендпоінти, сервіси, репозиторії) і залежності між ними — для частин, що змінюються в S3 (ЛР №7). Предметна модель і таблиці БД — [model/class-diagram.md](../../model/class-diagram.md).
 
-**Стан:** після S2 — початковий коміт рефакторингу S3 `d9709ab`. Після рефакторингу оновлюються лише змінені класи й залежності (розд. 3).
+**Стан:** розд. 1–2 — після S2, початковий коміт рефакторингу S3 `d9709ab`; розд. 3 — після рефакторингу (лише змінені класи й залежності).
 
 ## 1. Галерея — до рефакторингу (S2)
 
@@ -148,7 +148,85 @@ classDiagram
 
 ## 3. Після рефакторингу (S3)
 
-*Заповнюється в S3-1: `GalleryFacade` між `Gallery.razor` і клієнтом / помічниками; помічники — у клієнтському шарі; метод фільтра за стилем (S3-3).*
+Шаблон **Фасад** (#52, коміти `refactor:`). `Gallery.razor` звертається лише до `GalleryFacade`; клієнт, перетворення карток, тексти помилок і часовий пояс — за фасадом. Обробка помилок, що повторювалась у кожній дії сторінки, — в одному місці. UI-помічники перенесено із серверного шару `Services/Results`, `Services/Modes` у клієнтський: `Clients/Gallery` (галерея) і `Clients/Design` (сторінка «Дизайн»). Поведінку зафіксовано тестами S3-2 (`GalleryScenarioTests`) — вони проходять до й після.
+
+Показано лише змінене; `GalleryClient`, `ResultEndpoints`, `ResultService`, репозиторії — без змін (розд. 1).
+
+```mermaid
+classDiagram
+    direction LR
+
+    class Gallery {
+        <<razor page>>
+        -items: List~GalleryItemView~
+        -zoneId: string
+        -LoadAsync()
+        -DeleteAsync(id: int)
+        -GetTimeZoneIdAsync() string
+    }
+    class GalleryFacade {
+        -client: IGalleryClient
+        +LoadAsync(timeZoneId: string) GalleryLoadResult
+        +DeleteAsync(id: int) GalleryDeleteResult
+    }
+    class GalleryLoadResult {
+        <<record>>
+        +Items: GalleryItemView[]
+        +Error: string
+        +IsSuccess: bool
+    }
+    class GalleryDeleteResult {
+        <<record>>
+        +Status: GalleryDeleteStatus
+        +Error: string
+        +RemoveCard: bool
+    }
+    class GalleryDeleteStatus {
+        <<enumeration>>
+        Deleted
+        NotFound
+        Failed
+    }
+    class IGalleryClient {
+        <<interface>>
+        +GetAllAsync() ResultDto[]
+        +DeleteAsync(id: int) bool
+    }
+    class GalleryItemView {
+        <<record>>
+        +From(result: ResultDto, zone: TimeZoneInfo)$ GalleryItemView
+    }
+    class GalleryErrorMessages {
+        <<static>>
+        +FromException(ex: Exception)$ string
+    }
+    class BrowserTimeZone {
+        <<static>>
+        +Resolve(ianaId: string)$ TimeZoneInfo
+    }
+    class StyleLabel {
+        <<record>>
+    }
+
+    Gallery ..> GalleryFacade : викликає
+    Gallery ..> GalleryLoadResult
+    Gallery ..> GalleryDeleteResult
+    GalleryFacade --> IGalleryClient
+    GalleryFacade ..> GalleryItemView : перетворює ResultDto
+    GalleryFacade ..> GalleryErrorMessages : текст помилки
+    GalleryFacade ..> BrowserTimeZone : часовий пояс
+    GalleryDeleteResult --> GalleryDeleteStatus
+    GalleryItemView ..> StyleLabel
+```
+
+| Було | Стало |
+|---|---|
+| `Gallery` → `IGalleryClient`, `GalleryItemView`, `GalleryErrorMessages`, `BrowserTimeZone` | `Gallery` → `GalleryFacade` |
+| `try/catch` у `LoadAsync` і `DeleteAsync` сторінки | у `GalleryFacade`; сторінка отримує готовий текст (`Error`) |
+| `Services/Results`: `GalleryItemView`, `GalleryErrorMessages`, `BrowserTimeZone`, `DesignDownloadName` | `Clients/Gallery`: перші три; `Clients/Design`: `DesignDownloadName` |
+| `Services/Modes`: `AnalysisModePicker`, `AnalysisResultView`, `StyleLabel` | `Clients/Design` |
+
+*Фільтр за стилем (S3-3) додається новим методом фасаду — доповнюється в S3-3.*
 
 ## Позначення
 
