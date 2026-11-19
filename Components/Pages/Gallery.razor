@@ -1,7 +1,6 @@
 @page "/gallery"
-@using AiDesigner.Clients
 @using AiDesigner.Clients.Gallery
-@inject IGalleryClient Client
+@inject GalleryFacade Facade
 @inject IJSRuntime JS
 
 <PageTitle>Галерея — ШІ-дизайнер інтер'єру</PageTitle>
@@ -78,7 +77,8 @@
     private string? _error;
     private int? _confirmingId;         // картка, де зараз питаємо «Видалити цю роботу?»
     private int? _busyId;               // картка, яку зараз видаляють
-    private TimeZoneInfo? _zone;        // пояс браузера (визначаємо один раз)
+    private string? _zoneId;            // пояс браузера (визначаємо один раз)
+    private bool _zoneKnown;
 
     // Завантажуємо після першого показу, коли вже є інтерактивне з'єднання:
     // під час попереднього рендеру сторінка не робить запиту до власного API.
@@ -94,37 +94,33 @@
         _loadFailed = false;
         _error = null;
 
-        try
+        if (!_zoneKnown)
         {
-            _zone ??= await ResolveZoneAsync();
-            var results = await Client.GetAllAsync();
-            _items = results.Select(r => GalleryItemView.From(r, _zone)).ToList();
+            _zoneId = await GetTimeZoneIdAsync();
+            _zoneKnown = true;
         }
-        catch (Exception ex)
-        {
-            // Межа інтерфейсу: будь-який збій показуємо текстом, а не падінням сторінки.
-            _loadFailed = true;
-            _error = GalleryErrorMessages.FromException(ex);
-        }
-        finally
-        {
-            _loading = false;
-            StateHasChanged();
-        }
+
+        var loaded = await Facade.LoadAsync(_zoneId);
+        if (loaded.IsSuccess)
+            _items = loaded.Items.ToList();
+
+        _loadFailed = !loaded.IsSuccess;
+        _error = loaded.Error;
+        _loading = false;
+        StateHasChanged();
     }
 
-    // Сервер не знає пояса користувача — питаємо браузер. Не вийшло: час за поясом сервера.
-    private async Task<TimeZoneInfo> ResolveZoneAsync()
+    // Сервер не знає пояса користувача — питаємо браузер. Не вийшло: null, фасад візьме пояс сервера.
+    private async Task<string?> GetTimeZoneIdAsync()
     {
         try
         {
             await using var module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/browserInfo.js");
-            var id = await module.InvokeAsync<string?>("getTimeZone");
-            return BrowserTimeZone.Resolve(id);
+            return await module.InvokeAsync<string?>("getTimeZone");
         }
         catch (Exception)
         {
-            return TimeZoneInfo.Local;
+            return null;
         }
     }
 
@@ -138,22 +134,11 @@
         _busyId = id;
         _error = null;
 
-        try
-        {
-            var deleted = await Client.DeleteAsync(id);
-            if (!deleted)
-                _error = GalleryErrorMessages.WorkNotFoundMessage;   // 404: хтось уже видалив
+        var deleted = await Facade.DeleteAsync(id);
+        _error = deleted.Error;
+        if (deleted.RemoveCard)
+            _items.RemoveAll(i => i.Id == id);   // і після успіху, і після 404; після збою робота лишається
 
-            // І після успіху, і після 404 робити в списку більше нічого — прибираємо картку.
-            _items.RemoveAll(i => i.Id == id);
-        }
-        catch (Exception ex)
-        {
-            _error = GalleryErrorMessages.FromException(ex);          // робота лишається в списку
-        }
-        finally
-        {
-            _busyId = null;
-        }
+        _busyId = null;
     }
 }

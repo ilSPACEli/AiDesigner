@@ -36,9 +36,11 @@ public class GalleryScenarioTests
         return saved.Result!;
     }
 
-    // Дзеркало стану й дій Gallery.razor: ті самі кроки й ті самі присвоєння.
+    // Дзеркало стану й дій Gallery.razor: ті самі кроки, сторінка звертається лише до фасаду.
     private sealed class PageSteps(IGalleryClient client)
     {
+        private readonly GalleryFacade _facade = new(client);
+
         public List<GalleryItemView> Items { get; private set; } = new();
         public bool LoadFailed { get; private set; }
         public string? Error { get; private set; }
@@ -46,41 +48,28 @@ public class GalleryScenarioTests
         // Gallery.razor -> LoadAsync (пояс UTC, щоб дата не залежала від машини).
         public async Task LoadAsync()
         {
-            LoadFailed = false;
-            Error = null;
+            var loaded = await _facade.LoadAsync("UTC");
+            if (loaded.IsSuccess)
+                Items = loaded.Items.ToList();
 
-            try
-            {
-                var results = await client.GetAllAsync();
-                Items = results.Select(r => GalleryItemView.From(r, TimeZoneInfo.Utc)).ToList();
-            }
-            catch (Exception ex)
-            {
-                LoadFailed = true;
-                Error = GalleryErrorMessages.FromException(ex);
-            }
+            LoadFailed = !loaded.IsSuccess;
+            Error = loaded.Error;
         }
 
-        // Gallery.razor -> DeleteAsync. Повертає те, що повернув клієнт (null — клієнт кинув виняток).
+        // Gallery.razor -> DeleteAsync. true — видалено, false — 404, null — збій (робота лишається в списку).
         public async Task<bool?> DeleteAsync(int id)
         {
-            Error = null;
-
-            try
-            {
-                var deleted = await client.DeleteAsync(id);
-                if (!deleted)
-                    Error = GalleryErrorMessages.WorkNotFoundMessage;
-
-                // І після успіху, і після 404 картку прибираємо зі списку.
+            var deleted = await _facade.DeleteAsync(id);
+            Error = deleted.Error;
+            if (deleted.RemoveCard)
                 Items.RemoveAll(i => i.Id == id);
-                return deleted;
-            }
-            catch (Exception ex)
+
+            return deleted.Status switch
             {
-                Error = GalleryErrorMessages.FromException(ex);   // робота лишається в списку
-                return null;
-            }
+                GalleryDeleteStatus.Deleted => true,
+                GalleryDeleteStatus.NotFound => false,
+                _ => null
+            };
         }
     }
 
