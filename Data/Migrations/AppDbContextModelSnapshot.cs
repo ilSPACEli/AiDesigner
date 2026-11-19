@@ -48,6 +48,10 @@ namespace AiDesigner.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<string>("Style")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<string>("SuitableLightings")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -61,6 +65,38 @@ namespace AiDesigner.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("CatalogItems");
+                });
+
+            modelBuilder.Entity("AiDesigner.Models.ResultAnalysis", b =>
+                {
+                    b.Property<int>("SavedResultId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Colors")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("Confidence")
+                        .HasPrecision(4, 3)
+                        .HasColumnType("numeric(4,3)");
+
+                    b.Property<string>("Lighting")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Mode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Style")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("SavedResultId");
+
+                    b.ToTable("ResultAnalyses");
                 });
 
             modelBuilder.Entity("AiDesigner.Models.SavedResult", b =>
@@ -96,6 +132,15 @@ namespace AiDesigner.Data.Migrations
                     b.ToTable("SavedResults");
                 });
 
+            modelBuilder.Entity("AiDesigner.Models.ResultAnalysis", b =>
+                {
+                    b.HasOne("AiDesigner.Models.SavedResult", null)
+                        .WithOne("Analysis")
+                        .HasForeignKey("AiDesigner.Models.ResultAnalysis", "SavedResultId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("AiDesigner.Models.SavedResult", b =>
                 {
                     b.HasOne("AiDesigner.Models.CatalogItem", "CatalogItem")
@@ -105,6 +150,11 @@ namespace AiDesigner.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("CatalogItem");
+                });
+
+            modelBuilder.Entity("AiDesigner.Models.SavedResult", b =>
+                {
+                    b.Navigation("Analysis");
                 });
 #pragma warning restore 612, 618
         }

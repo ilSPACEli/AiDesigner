@@ -17,6 +17,7 @@ public class ResultService
 
     public const string NoItemMessage = "Не вказано предмет каталогу.";
     public const string UnknownItemMessage = "Такого предмета немає в каталозі.";
+    public const string NoAnalysisMessage = "Не передано результат аналізу в полі analysis.";
     public const string NotPngMessage = "Дані не є зображенням PNG або файл пошкоджений.";
     public const string SaveFailedMessage = "Не вдалося зберегти зображення. Спробуйте ще раз.";
 
@@ -48,7 +49,8 @@ public class ResultService
     }
 
 
-    public async Task<SaveOutcome> SaveAsync(byte[] pngBytes, string? catalogItemId, CancellationToken cancellationToken = default)
+    public async Task<SaveOutcome> SaveAsync(
+        byte[] pngBytes, string? catalogItemId, ResultAnalysis? analysis, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(pngBytes);
 
@@ -57,6 +59,9 @@ public class ResultService
 
         if (string.IsNullOrWhiteSpace(catalogItemId))
             return SaveOutcome.BadRequest(NoItemMessage);
+
+        if (analysis is null)
+            return SaveOutcome.BadRequest(NoAnalysisMessage);
 
         try
         {
@@ -84,7 +89,8 @@ public class ResultService
                 CatalogItemId = item.Id,
                 CatalogItem = item,   // EF його ігнорує (пише лише ключ), а сховище в пам'яті збереже для списку
                 ImageData = prepared.Image,
-                ThumbnailData = prepared.Thumbnail
+                ThumbnailData = prepared.Thumbnail,
+                Analysis = analysis
             };
             var saved = await _repository.AddAsync(entity, evict, cancellationToken);
 
@@ -206,6 +212,7 @@ public class ResultService
         CatalogItemId = saved.CatalogItemId,
         CatalogItem = item,
         ImageData = saved.ImageData,
-        ThumbnailData = saved.ThumbnailData
+        ThumbnailData = saved.ThumbnailData,
+        Analysis = saved.Analysis
     };
 }

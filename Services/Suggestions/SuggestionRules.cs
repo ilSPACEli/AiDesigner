@@ -42,11 +42,12 @@ public sealed class SuggestionRules
 
             if (score > 0)
             {
+                var bonus = StyleMatchRule.Apply(analysis.Style, item.Style);
                 candidates.Add(new Suggestion
                 {
                     Item = item,
-                    Score = score,
-                    Reason = reason
+                    Score = score + bonus,
+                    Reason = bonus > 0 ? reason + " " + StyleMatchRule.Reason : reason
                 });
             }
             else

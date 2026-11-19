@@ -5,7 +5,7 @@ namespace AiDesigner.Api.Dto;
 
 public sealed record ColorDto(string? Hex, int Hue, decimal Share);
 
-public sealed record AnalysisRequestDto(IReadOnlyList<ColorDto>? Colors, string? Lighting)
+public sealed record AnalysisRequestDto(IReadOnlyList<ColorDto>? Colors, string? Lighting, string? Style = null)
 {
     public const int MinColors = 3;
     public const int MaxColors = 5;
@@ -17,7 +17,8 @@ public sealed record AnalysisRequestDto(IReadOnlyList<ColorDto>? Colors, string?
         ArgumentNullException.ThrowIfNull(analysis);
         return new AnalysisRequestDto(
             analysis.Colors.Select(c => new ColorDto(c.Hex, c.Hue, c.Share)).ToList(),
-            analysis.Lighting.ToString());
+            analysis.Lighting.ToString(),
+            analysis.Style?.ToString());
     }
 
     public AnalysisResult? ToModel(out string? error)
@@ -54,13 +55,20 @@ public sealed record AnalysisRequestDto(IReadOnlyList<ColorDto>? Colors, string?
             }
         }
 
+        if (Style is not null && !Enum.GetNames<RoomStyle>().Contains(Style))
+        {
+            error = "style: невідомий стиль.";
+            return null;
+        }
+
         error = null;
         var lighting = Enum.Parse<LightingLevel>(Lighting);
         return new AnalysisResult
         {
             Colors = Colors.Select(c => new DominantColor { Hex = c.Hex!, Hue = c.Hue, Share = c.Share }).ToList(),
             Lighting = lighting,
-            AnalyzedAt = DateTime.UtcNow
+            AnalyzedAt = DateTime.UtcNow,
+            Style = Style is null ? null : Enum.Parse<RoomStyle>(Style)
         };
     }
 }

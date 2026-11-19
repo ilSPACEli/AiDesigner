@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AiDesigner.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -17,6 +18,8 @@ public class AppDbContext : DbContext
 
     public DbSet<SavedResult> SavedResults => Set<SavedResult>();
 
+    public DbSet<ResultAnalysis> ResultAnalyses => Set<ResultAnalysis>();
+
     private static readonly ValueConverter<IReadOnlyList<LightingLevel>, string> LightingsConverter = new(
         levels => string.Join(',', levels),
         text => text.Split(',', StringSplitOptions.RemoveEmptyEntries)
@@ -27,6 +30,23 @@ public class AppDbContext : DbContext
         (a, b) => (a == null && b == null) || (a != null && b != null && a.SequenceEqual(b)),
         levels => levels.Aggregate(0, (hash, level) => HashCode.Combine(hash, level)),
         levels => levels.ToArray());
+
+    private static readonly JsonSerializerOptions ColorsJson = new(JsonSerializerDefaults.Web);
+
+    private static string ColorsToJson(IReadOnlyList<DominantColor> colors) =>
+        JsonSerializer.Serialize(colors, ColorsJson);
+
+    private static IReadOnlyList<DominantColor> ColorsFromJson(string json) =>
+        JsonSerializer.Deserialize<List<DominantColor>>(json, ColorsJson) ?? new List<DominantColor>();
+
+    private static readonly ValueConverter<IReadOnlyList<DominantColor>, string> ColorsConverter = new(
+        colors => ColorsToJson(colors),
+        json => ColorsFromJson(json));
+
+    private static readonly ValueComparer<IReadOnlyList<DominantColor>> ColorsComparer = new(
+        (a, b) => (a == null && b == null) || (a != null && b != null && ColorsToJson(a) == ColorsToJson(b)),
+        colors => ColorsToJson(colors).GetHashCode(),
+        colors => ColorsFromJson(ColorsToJson(colors)));
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -47,6 +67,8 @@ public class AppDbContext : DbContext
                 .HasConversion(LightingsConverter, LightingsComparer)
                 .HasMaxLength(LightingsMaxLength)
                 .IsRequired();
+
+            item.Property(i => i.Style).HasConversion<string>().HasMaxLength(20);
         });
 
         modelBuilder.Entity<SavedResult>(result =>
@@ -66,6 +88,26 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
 
             result.HasIndex(r => new { r.CreatedAt, r.Id });
+
+            result.HasOne(r => r.Analysis)
+                .WithOne()
+                .HasForeignKey<ResultAnalysis>(a => a.SavedResultId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ResultAnalysis>(analysis =>
+        {
+            analysis.HasKey(a => a.SavedResultId);
+            analysis.Property(a => a.SavedResultId).ValueGeneratedNever();
+
+            analysis.Property(a => a.Mode).HasConversion<string>().HasMaxLength(20);
+            analysis.Property(a => a.Lighting).HasConversion<string>().HasMaxLength(20);
+            analysis.Property(a => a.Style).HasConversion<string>().HasMaxLength(20);
+            analysis.Property(a => a.Confidence).HasPrecision(4, 3);   // 0.000–1.000
+
+            analysis.Property(a => a.Colors)
+                .HasConversion(ColorsConverter, ColorsComparer)
+                .IsRequired();
         });
     }
 }

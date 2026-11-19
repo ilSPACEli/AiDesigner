@@ -26,9 +26,25 @@ public class CatalogDataTests
     }
 
     [Fact]
-    public void AC12_CatalogHas20To30Items()
+    public void AC12_CatalogHas40To50Items()
     {
-        Assert.InRange(Items.Count, 20, 30);
+        Assert.InRange(Items.Count, 40, 50);
+    }
+
+    [Fact]
+    public void AC12_AllRequiredFields_IncludingStyle_AreFilled()
+    {
+        Assert.All(Items, item =>
+        {
+            Assert.False(string.IsNullOrWhiteSpace(item.Id), "Порожній id.");
+            Assert.False(string.IsNullOrWhiteSpace(item.Name), $"«{item.Id}»: порожня назва.");
+            Assert.True(Enum.IsDefined(item.Type), $"«{item.Id}»: невідомий тип.");
+            Assert.False(string.IsNullOrWhiteSpace(item.ImageFile), $"«{item.Id}»: немає зображення.");
+            Assert.False(string.IsNullOrWhiteSpace(item.MainColor), $"«{item.Id}»: немає основного кольору.");
+            Assert.NotEmpty(item.SuitableLightings);
+            Assert.False(string.IsNullOrWhiteSpace(item.LicenseSource), $"«{item.Id}»: немає джерела/ліцензії.");
+            Assert.True(item.Style is { } style && Enum.IsDefined(style), $"«{item.Id}»: не задано стиль.");
+        });
     }
 
     [Fact]
@@ -59,6 +75,19 @@ public class CatalogDataTests
         Assert.True(Math.Max(info.Width, info.Height) <= 512, "Зображення має бути зменшене до 512 px.");
     }
 
+    private const long MaxImageBytes = 500 * 1024;
+
+    [Theory]
+    [MemberData(nameof(AllItems))]
+    public void AC12_ImageFile_IsNotLargerThan500Kb(string id)
+    {
+        var path = Path.Combine(RepoPaths.WebRoot, ById(id).ImageFile);
+        var size = new FileInfo(path).Length;
+
+        Assert.True(size <= MaxImageBytes, $"«{id}»: {size / 1024} КБ, ліміт {MaxImageBytes / 1024} КБ.");
+    }
+
+
     [Theory]
     [MemberData(nameof(AllItems))]
     public void AC12_Image_HasTransparentBackground(string id)
@@ -84,6 +113,21 @@ public class CatalogDataTests
         });
 
         Assert.True(hasTransparent, $"У «{id}» немає прозорих пікселів — фон не вирізано.");
+    }
+
+    // ---------- AC-34: стилі в каталозі ----------
+
+    public static IEnumerable<object[]> AllStyles() =>
+        Enum.GetValues<RoomStyle>().Select(style => new object[] { style });
+
+    // Для правила R6 потрібні предмети кожного стилю (US-3, #34).
+    [Theory]
+    [MemberData(nameof(AllStyles))]
+    public void AC34_EachStyle_HasAtLeast5Items(RoomStyle style)
+    {
+        var count = Items.Count(i => i.Style == style);
+
+        Assert.True(count >= 5, $"Для стилю {style} лише {count} предметів (потрібно ≥ 5).");
     }
 
     // ---------- AC-18 / NFR-05: джерело й ліцензія ----------

@@ -1,16 +1,19 @@
 using System.Globalization;
 using AiDesigner.Api.Dto;
+using AiDesigner.Services.Modes;
 
 namespace AiDesigner.Services.Results;
 
 // Те, що показує картка галереї: усе вже готове до виведення, сторінка нічого не форматує.
+// Style — рядок про стиль роботи (AC-32); null — роботу збережено без ШІ або до S2, рядка немає.
 public sealed record GalleryItemView(
     int Id,
     string ItemName,
     string DateText,
     string ThumbnailUrl,
     string ImageUrl,
-    string DownloadFileName)
+    string DownloadFileName,
+    StyleLabel? Style = null)
 {
     public const string DateFormat = "dd.MM.yyyy HH:mm";
 
@@ -29,6 +32,7 @@ public sealed record GalleryItemView(
             local.ToString(DateFormat, CultureInfo.InvariantCulture),
             result.ThumbnailUrl,
             result.ImageUrl,
-            $"result-{result.Id}.png");   // така сама умовна назва, як у ResultImage.FileName (docs/api.md, розділ 4)
+            $"result-{result.Id}.png",    // така сама умовна назва, як у ResultImage.FileName (docs/api.md, розділ 4)
+            StyleLabel.For(result.AnalysisMode, result.Style));
     }
 }

@@ -1,6 +1,7 @@
 using AiDesigner.Api.Dto;
 using AiDesigner.Clients;
 using AiDesigner.Models;
+using AiDesigner.Services.Style;
 
 namespace AiDesigner.Services;
 
@@ -11,17 +12,24 @@ public class DesignService
     private readonly IPhotoAnalyzer _analyzer;
     private readonly ISuggestionClient _suggestions;
     private readonly IGalleryClient _gallery;
+    private readonly IReadOnlyList<IStyleAnalyzer> _styleAnalyzers;
+    private readonly ILogger<DesignService>? _logger;
 
-    public DesignService(IPhotoAnalyzer analyzer, ISuggestionClient suggestions, IGalleryClient gallery)
+    public DesignService(IPhotoAnalyzer analyzer, ISuggestionClient suggestions, IGalleryClient gallery,
+        IEnumerable<IStyleAnalyzer>? styleAnalyzers = null, ILogger<DesignService>? logger = null)
     {
         _analyzer = analyzer;
         _suggestions = suggestions;
         _gallery = gallery;
+        _styleAnalyzers = styleAnalyzers?.ToList() ?? new List<IStyleAnalyzer>();
+        _logger = logger;
     }
 
     public DesignSession Session { get; } = new();
 
     public TimeSpan AnalysisTimeout { get; init; } = TimeSpan.FromSeconds(30);
+
+    public TimeSpan StyleTimeout { get; init; } = TimeSpan.FromSeconds(30);
 
 
     // ---------- UC-01. Завантажити фото приміщення ----------
@@ -158,15 +166,65 @@ public class DesignService
         };
     }
 
-    public async Task<AnalysisOutcome> AnalyzeAsync(CancellationToken cancellationToken = default)
+    // ---------- UC-02. Аналіз: режими й стиль ----------
+
+    public const string CloudConsentRequiredMessage =
+        "Для режиму «Хмарний ШІ» потрібна згода на передачу фото сервісу Google Gemini.";
+
+    public const string ModeNotConfiguredReason = "Режим не налаштовано.";
+    public const string ModeCheckFailedReason = "Не вдалося перевірити доступність режиму.";
+
+    public static string StyleFailedNotice(AnalysisMode mode) =>
+        $"{DisplayNames.Of(mode)} не відповів. Показано результат без ШІ.";
+
+    public string StyleTimeoutNotice(AnalysisMode mode) =>
+        $"{DisplayNames.Of(mode)} не відповів за {StyleTimeout.TotalSeconds:0} с. Показано результат без ШІ.";
+
+    public bool HasCloudConsent { get; private set; }
+
+    public void GiveCloudConsent() => HasCloudConsent = true;
+
+    public async Task<IReadOnlyList<ModeAvailability>> GetModesAsync(CancellationToken cancellationToken = default)
     {
-        // UC-01: поки нове фото завантажується, аналіз не запускаємо — сесія лишається без змін.
+        var checks = new[] { AnalysisMode.LOCAL_AI, AnalysisMode.CLOUD_AI }.Select(mode => CheckModeAsync(mode, cancellationToken));
+        var aiModes = await Task.WhenAll(checks);
+        return new[] { ModeAvailability.Available(AnalysisMode.BASIC) }.Concat(aiModes).ToList();
+    }
+
+    private async Task<ModeAvailability> CheckModeAsync(AnalysisMode mode, CancellationToken cancellationToken)
+    {
+        if (FindStyleAnalyzer(mode) is not { } analyzer)
+            return ModeAvailability.Unavailable(mode, ModeNotConfiguredReason);
+        try
+        {
+            return await analyzer.CheckAvailabilityAsync(cancellationToken);
+        }
+        catch (Exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            return ModeAvailability.Unavailable(mode, ModeCheckFailedReason);
+        }
+    }
+
+    private IStyleAnalyzer? FindStyleAnalyzer(AnalysisMode mode) => _styleAnalyzers.FirstOrDefault(a => a.Mode == mode);
+
+    public Task<AnalysisOutcome> AnalyzeAsync(CancellationToken cancellationToken = default) =>
+        AnalyzeAsync(AnalysisMode.BASIC, cancellationToken);
+
+    public async Task<AnalysisOutcome> AnalyzeAsync(AnalysisMode mode, CancellationToken cancellationToken = default)
+    {
         if (IsLoadingPhoto)
             return AnalysisOutcome.Error(PhotoLoadInProgressMessage);
 
+        if (mode == AnalysisMode.CLOUD_AI && !HasCloudConsent)
+            return AnalysisOutcome.Error(CloudConsentRequiredMessage);
+
         Session.BeginAnalysis();
 
-        var outcome = await RunAnalyzerAsync(Session.Photo!, cancellationToken);
+        var photo = Session.Photo!;
+        var outcome = await RunAnalyzerAsync(photo, cancellationToken);
+
+        if (outcome.Status == AnalysisStatus.Success && mode != AnalysisMode.BASIC)
+            outcome = await AddStyleAsync(outcome.Result!, mode, photo, cancellationToken);
 
         if (outcome.Status == AnalysisStatus.Success)
         {
@@ -177,7 +235,6 @@ public class DesignService
             }
             catch (ArgumentException)
             {
-                // Аналізатор повернув не 3–5 кольорів — вважаємо це помилкою обробки (E1).
                 outcome = AnalysisOutcome.Error("Аналіз повернув некоректний результат. Спробуйте ще раз.");
             }
         }
@@ -186,6 +243,52 @@ public class DesignService
         return outcome;
     }
 
+    private async Task<AnalysisOutcome> AddStyleAsync(AnalysisResult basic, AnalysisMode mode, Photo photo, CancellationToken cancellationToken)
+    {
+        if (FindStyleAnalyzer(mode) is not { } analyzer)
+        {
+            _logger?.LogWarning("Режим {Mode}: провайдера ШІ не налаштовано, показано результат без ШІ.", mode);
+            return AnalysisOutcome.Success(basic, StyleFailedNotice(mode));
+        }
+
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        try
+        {
+            var answer = await Task.Run(async () =>
+                {
+                    var image = StyleImage.Prepare(photo.Content);
+                    return await analyzer.AnalyzeStyleAsync(image, timeoutCts.Token);
+                }, timeoutCts.Token)
+                .WaitAsync(StyleTimeout, cancellationToken);
+
+            var decision = StyleAcceptanceRule.Apply(answer);
+            return AnalysisOutcome.Success(new AnalysisResult
+            {
+                Colors = basic.Colors,
+                Lighting = basic.Lighting,
+                AnalyzedAt = basic.AnalyzedAt,
+                Mode = mode,
+                Style = decision.Style,
+                Confidence = decision.Confidence
+            });
+        }
+        catch (TimeoutException)
+        {
+            timeoutCts.Cancel();
+            _logger?.LogWarning("Режим {Mode}: ШІ не відповів за {Seconds} с, показано результат без ШІ.", mode, StyleTimeout.TotalSeconds);
+            return AnalysisOutcome.Success(basic, StyleTimeoutNotice(mode));
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return AnalysisOutcome.Error("Аналіз скасовано.");
+        }
+        catch (Exception ex)
+        {
+            timeoutCts.Cancel();
+            _logger?.LogWarning(ex, "Режим {Mode}: помилка ШІ, показано результат без ШІ.", mode);
+            return AnalysisOutcome.Success(basic, StyleFailedNotice(mode));
+        }
+    }
 
     private async Task<AnalysisOutcome> RunAnalyzerAsync(Photo photo, CancellationToken cancellationToken)
     {
@@ -283,13 +386,14 @@ public class DesignService
 
     public async Task<ServiceResult> SaveAsync(byte[] pngBytes, CancellationToken cancellationToken = default)
     {
-        if (Session.State != SessionState.ITEM_PLACED || Session.Placement is not { } placement)
+        if (Session.State != SessionState.ITEM_PLACED || Session.Placement is not { } placement
+            || Session.Analysis is not { } analysis)
             throw new InvalidOperationException($"Неможливо зберегти результат у стані {Session.State}.");
 
         GallerySaveResult saved;
         try
         {
-            saved = await _gallery.SaveAsync(pngBytes, placement.Item.Id, cancellationToken);
+            saved = await _gallery.SaveAsync(pngBytes, placement.Item.Id, ResultAnalysisDto.From(analysis), cancellationToken);
         }
         catch (Exception)
         {

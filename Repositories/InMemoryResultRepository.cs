@@ -22,14 +22,24 @@ public sealed class InMemoryResultRepository : IResultRepository
                 _items.Remove(old);
 
             // Id — init-only, тож присвоюємо його, створюючи копію (як це робить БД).
+            var id = _nextId++;
             var stored = new SavedResult
             {
-                Id = _nextId++,
+                Id = id,
                 CreatedAt = result.CreatedAt,
                 CatalogItemId = result.CatalogItemId,
                 CatalogItem = result.CatalogItem,
                 ImageData = result.ImageData,
-                ThumbnailData = result.ThumbnailData
+                ThumbnailData = result.ThumbnailData,
+                Analysis = result.Analysis is { } a ? new ResultAnalysis
+                {
+                    SavedResultId = id,
+                    Mode = a.Mode,
+                    Lighting = a.Lighting,
+                    Colors = a.Colors,
+                    Style = a.Style,
+                    Confidence = a.Confidence
+                } : null
             };
             _items.Add(stored);
             return Task.FromResult(stored);

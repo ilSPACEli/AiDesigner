@@ -23,15 +23,18 @@ public sealed class AnalysisOutcome
 
     public string Message { get; }
 
-    private AnalysisOutcome(AnalysisStatus status, AnalysisResult? result, string message)
+    public string? Notice { get; }
+
+    private AnalysisOutcome(AnalysisStatus status, AnalysisResult? result, string message, string? notice = null)
     {
         Status = status;
         Result = result;
         Message = message;
+        Notice = notice;
     }
 
-    public static AnalysisOutcome Success(AnalysisResult result) =>
-        new(AnalysisStatus.Success, result ?? throw new ArgumentNullException(nameof(result)), string.Empty);
+    public static AnalysisOutcome Success(AnalysisResult result, string? notice = null) =>
+        new(AnalysisStatus.Success, result ?? throw new ArgumentNullException(nameof(result)), string.Empty, notice);
 
     public static AnalysisOutcome InsufficientData() =>
         new(AnalysisStatus.InsufficientData, null,

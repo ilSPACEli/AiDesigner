@@ -7,6 +7,7 @@ using AiDesigner.Repositories;
 using AiDesigner.Services;
 using AiDesigner.Services.Analysis;
 using AiDesigner.Services.Results;
+using AiDesigner.Services.Style;
 using AiDesigner.Services.Suggestions;
 using DotNetEnv;
 using Microsoft.EntityFrameworkCore;
@@ -22,6 +23,7 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddSingleton<IPhotoAnalyzer, PhotoAnalyzer>();   // UC-02
+builder.Services.AddAiAnalysis(builder.Configuration);            // S2: режими ШІ
 builder.Services.AddSingleton<IResultStorage, FileResultStorage>();
 
 builder.Services.AddScoped<DesignService>();

@@ -39,6 +39,11 @@
                     <div class="meta">
                         <strong>@item.ItemName</strong>
                         <span class="date">@item.DateText</span>
+                        @if (item.Style is { } style)
+                        {
+                            @* AC-32: стиль роботи; «не визначено» — нейтрально, не як помилка. *@
+                            <span class="style @(style.IsDetermined ? null : "undetermined")">@style.Text</span>
+                        }
                     </div>
 
                     @if (_confirmingId == item.Id)
