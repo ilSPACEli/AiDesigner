@@ -320,8 +320,8 @@ public class GalleryScenarioTests
         public Task<GallerySaveResult> SaveAsync(byte[] pngBytes, string catalogItemId, ResultAnalysisDto analysis, CancellationToken cancellationToken = default) =>
             inner.SaveAsync(pngBytes, catalogItemId, analysis, cancellationToken);
 
-        public Task<IReadOnlyList<ResultDto>> GetAllAsync(CancellationToken cancellationToken = default) =>
-            inner.GetAllAsync(cancellationToken);
+        public Task<IReadOnlyList<ResultDto>> GetAllAsync(RoomStyle? style = null, CancellationToken cancellationToken = default) =>
+            inner.GetAllAsync(style, cancellationToken);
 
         public Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default) =>
             throw new HttpRequestException("Сервер відповів помилкою", null, status);
@@ -334,10 +334,10 @@ public class GalleryScenarioTests
         public Task<GallerySaveResult> SaveAsync(byte[] pngBytes, string catalogItemId, ResultAnalysisDto analysis, CancellationToken cancellationToken = default) =>
             inner.SaveAsync(pngBytes, catalogItemId, analysis, cancellationToken);
 
-        public Task<IReadOnlyList<ResultDto>> GetAllAsync(CancellationToken cancellationToken = default)
+        public Task<IReadOnlyList<ResultDto>> GetAllAsync(RoomStyle? style = null, CancellationToken cancellationToken = default)
         {
             if (_failed)
-                return inner.GetAllAsync(cancellationToken);
+                return inner.GetAllAsync(style, cancellationToken);
 
             _failed = true;
             throw new HttpRequestException("Немає з'єднання");

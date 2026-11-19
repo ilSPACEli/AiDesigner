@@ -59,11 +59,16 @@ public sealed class EfResultRepository : IResultRepository
         return entity;
     }
 
-    public Task<IReadOnlyList<SavedResult>> GetAllAsync(CancellationToken cancellationToken = default) =>
-        ToSummariesAsync(
-            _db.SavedResults.AsNoTracking()
-                .OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.Id),
+    public Task<IReadOnlyList<SavedResult>> GetAllAsync(RoomStyle? style = null, CancellationToken cancellationToken = default)
+    {
+        var query = _db.SavedResults.AsNoTracking();
+        if (style is { } value)
+            query = query.Where(r => r.Analysis != null && r.Analysis.Style == value);
+
+        return ToSummariesAsync(
+            query.OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.Id),
             cancellationToken);
+    }
 
     public Task<SavedResult?> GetByIdAsync(int id, CancellationToken cancellationToken = default) =>
         _db.SavedResults.AsNoTracking()

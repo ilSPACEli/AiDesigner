@@ -7,7 +7,7 @@ public interface IResultRepository
 
     Task<SavedResult> AddAsync(SavedResult result, int evictOldest = 0, CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<SavedResult>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<SavedResult>> GetAllAsync(RoomStyle? style = null, CancellationToken cancellationToken = default);
 
     Task<SavedResult?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
 
