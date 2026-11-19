@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using AiDesigner.Api.Dto;
+using AiDesigner.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AiDesigner.Clients;
@@ -48,9 +49,10 @@ public sealed class GalleryClient : IGalleryClient
         return GallerySaveResult.Fail(await ReadProblemMessageAsync(response, cancellationToken));
     }
 
-    public async Task<IReadOnlyList<ResultDto>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<ResultDto>> GetAllAsync(RoomStyle? style = null, CancellationToken cancellationToken = default)
     {
-        var results = await _http.GetFromJsonAsync<List<ResultDto>>(ResultsPath, cancellationToken);
+        var path = style is { } value ? $"{ResultsPath}?style={value}" : ResultsPath;
+        var results = await _http.GetFromJsonAsync<List<ResultDto>>(path, cancellationToken);
         return results ?? new List<ResultDto>();
     }
 

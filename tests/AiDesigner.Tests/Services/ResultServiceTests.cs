@@ -461,7 +461,7 @@ public class ResultServiceTests
 
         public Task<int> CountAsync(CancellationToken cancellationToken = default) => Task.FromResult(0);
 
-        public Task<IReadOnlyList<SavedResult>> GetAllAsync(CancellationToken cancellationToken = default) =>
+        public Task<IReadOnlyList<SavedResult>> GetAllAsync(RoomStyle? style = null, CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
 
         public Task<SavedResult?> GetByIdAsync(int id, CancellationToken cancellationToken = default) =>

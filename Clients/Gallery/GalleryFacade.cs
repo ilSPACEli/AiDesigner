@@ -1,3 +1,5 @@
+using AiDesigner.Models;
+
 namespace AiDesigner.Clients.Gallery;
 
 public sealed class GalleryFacade
@@ -10,13 +12,19 @@ public sealed class GalleryFacade
         _client = client;
     }
 
-    public async Task<GalleryLoadResult> LoadAsync(string? timeZoneId, CancellationToken cancellationToken = default)
+    public static string NoWorksOfStyleMessage(RoomStyle style) =>
+        $"Робіт зі стилем «{DisplayNames.Of(style)}» ще немає.";
+
+    public async Task<GalleryLoadResult> LoadAsync(
+        string? timeZoneId, RoomStyle? style = null, CancellationToken cancellationToken = default)
     {
         try
         {
             var zone = BrowserTimeZone.Resolve(timeZoneId);
-            var results = await _client.GetAllAsync(cancellationToken);
-            return GalleryLoadResult.Success(results.Select(r => GalleryItemView.From(r, zone)).ToList());
+            var results = await _client.GetAllAsync(style, cancellationToken);
+            var items = results.Select(r => GalleryItemView.From(r, zone)).ToList();
+            var notice = items.Count == 0 && style is { } value ? NoWorksOfStyleMessage(value) : null;
+            return GalleryLoadResult.Success(items, notice);
         }
         catch (Exception ex)
         {

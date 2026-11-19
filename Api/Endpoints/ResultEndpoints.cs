@@ -9,6 +9,7 @@ namespace AiDesigner.Api.Endpoints;
 public static class ResultEndpoints
 {
     public const string BadRequestTitle = "Некоректний запит";
+    public const string UnknownStyleMessage = "style: невідомий стиль.";
     public const string TooLargeTitle = "Зображення завелике";
     public const string NotFoundTitle = "Роботу не знайдено";
     public const string SaveFailedTitle = "Помилка збереження";
@@ -78,10 +79,14 @@ public static class ResultEndpoints
         };
     }
 
-    // GET /api/results: нові спершу
-    private static async Task<IResult> GetAllAsync(ResultService service, CancellationToken cancellationToken)
+    // GET /api/results?style=LOFT: нові спершу; без style — уся галерея
+    private static async Task<IResult> GetAllAsync(string? style, ResultService service, CancellationToken cancellationToken)
     {
-        var results = await service.GetAllAsync(cancellationToken);
+        if (style is not null && !Enum.GetNames<RoomStyle>().Contains(style))
+            return ApiProblem.Result(StatusCodes.Status400BadRequest, BadRequestTitle, UnknownStyleMessage);
+
+        var filter = style is null ? (RoomStyle?)null : Enum.Parse<RoomStyle>(style);
+        var results = await service.GetAllAsync(filter, cancellationToken);
         return Results.Ok(results.Select(ResultDto.From).ToList());
     }
 
