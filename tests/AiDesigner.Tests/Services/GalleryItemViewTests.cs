@@ -1,6 +1,6 @@
 using AiDesigner.Api.Dto;
 using AiDesigner.Models;
-using AiDesigner.Services.Results;
+using AiDesigner.Clients.Gallery;
 
 namespace AiDesigner.Tests.Services;
 

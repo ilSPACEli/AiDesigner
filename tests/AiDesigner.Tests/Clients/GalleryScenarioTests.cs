@@ -2,7 +2,7 @@ using System.Net;
 using AiDesigner.Api.Dto;
 using AiDesigner.Clients;
 using AiDesigner.Models;
-using AiDesigner.Services.Results;
+using AiDesigner.Clients.Gallery;
 using AiDesigner.Tests.Analysis;
 using AiDesigner.Tests.Api;
 using SixLabors.ImageSharp.PixelFormats;

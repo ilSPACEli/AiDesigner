@@ -1,6 +1,6 @@
 using AiDesigner.Models;
 using AiDesigner.Services;
-using AiDesigner.Services.Modes;
+using AiDesigner.Clients.Design;
 using AiDesigner.Services.Style;
 
 namespace AiDesigner.Tests.Modes;
