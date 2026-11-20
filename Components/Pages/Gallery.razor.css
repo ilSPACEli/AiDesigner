@@ -62,3 +62,21 @@
     color: var(--color-muted);
     font-style: italic;
 }
+
+/* S3: фільтр за стилем (AC-36). */
+.filter {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+}
+
+.filter select {
+    padding: 6px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    color: var(--color-text);
+    font: inherit;
+}
