@@ -3,12 +3,8 @@ using AiDesigner.Repositories;
 
 namespace AiDesigner.Tests.Repositories;
 
-// «Контракт сховища» (ЛР №5): одні й ті самі тести виконуються для КОЖНОЇ реалізації
-// IResultRepository. Нащадок лише створює сховище (у пам'яті або EF на TestDb).
-// AC-19 (збереження, нові спершу), AC-22 (видалення), AC-23 (ліміт, R7).
 public abstract class ResultRepositoryContractTests
 {
-    /// <summary>Предмет каталогу, на який посилаються тестові роботи (для EF він має бути в БД через зовнішній ключ).</summary>
     protected const string ItemId = "sofa-01";
 
     protected abstract IResultRepository CreateRepository();
@@ -295,5 +291,63 @@ public abstract class ResultRepositoryContractTests
 
         Assert.Null(await repo.GetImageAsync(saved.Id));
         Assert.Null(await repo.GetThumbnailAsync(saved.Id));
+    }
+
+    // ---------- AC-36: фільтр за стилем (S3, FR-22) ----------
+
+    protected static SavedResult Styled(DateTime createdAt, RoomStyle? style, AnalysisMode mode = AnalysisMode.CLOUD_AI) => new()
+    {
+        CreatedAt = createdAt,
+        CatalogItemId = ItemId,
+        ImageData = new byte[] { 1, 2 },
+        ThumbnailData = new byte[] { 1, 3 },
+        Analysis = new ResultAnalysis
+        {
+            Mode = mode,
+            Lighting = LightingLevel.MODERATE,
+            Colors = new[] { new DominantColor { Hex = "#D8C3A5", Hue = 36, Share = 100m } },
+            Style = style,
+            Confidence = style is null ? null : 0.82m
+        }
+    };
+
+    [Fact]
+    public async Task AC36_GetAll_ByStyle_OnlyThatStyle_NewestFirst()
+    {
+        var repo = CreateRepository();
+        var loftOld = await repo.AddAsync(Styled(T(0), RoomStyle.LOFT));
+        await repo.AddAsync(Styled(T(1), RoomStyle.MINIMALISM));
+        var loftNew = await repo.AddAsync(Styled(T(2), RoomStyle.LOFT));
+        await repo.AddAsync(NewResult(T(3)));                           // без аналізу (до S2)
+        await repo.AddAsync(Styled(T(4), null));                        // ШІ, стиль не визначено
+        await repo.AddAsync(Styled(T(5), null, AnalysisMode.BASIC));    // без ШІ
+
+        var loft = await repo.GetAllAsync(RoomStyle.LOFT);
+
+        Assert.Equal(new[] { loftNew.Id, loftOld.Id }, Ids(loft));
+        Assert.All(loft, r => Assert.Equal(RoomStyle.LOFT, r.Analysis?.Style));
+    }
+
+    [Fact]
+    public async Task AC36_GetAll_WithoutStyle_ReturnsAllWorks_NewestFirst()
+    {
+        var repo = CreateRepository();
+        var loft = await repo.AddAsync(Styled(T(0), RoomStyle.LOFT));
+        var noAnalysis = await repo.AddAsync(NewResult(T(1)));
+        var notDetermined = await repo.AddAsync(Styled(T(2), null));
+
+        var all = await repo.GetAllAsync();
+
+        Assert.Equal(new[] { notDetermined.Id, noAnalysis.Id, loft.Id }, Ids(all));
+    }
+
+    [Fact]
+    public async Task AC37_GetAll_StyleWithoutWorks_ReturnsEmpty()
+    {
+        var repo = CreateRepository();
+        await repo.AddAsync(Styled(T(0), RoomStyle.LOFT));
+        await repo.AddAsync(NewResult(T(1)));
+
+        Assert.Empty(await repo.GetAllAsync(RoomStyle.BOHO));
     }
 }

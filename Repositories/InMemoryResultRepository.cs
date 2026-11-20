@@ -46,13 +46,14 @@ public sealed class InMemoryResultRepository : IResultRepository
         }
     }
 
-    public Task<IReadOnlyList<SavedResult>> GetAllAsync(CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<SavedResult>> GetAllAsync(RoomStyle? style = null, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         lock (_sync)
         {
             IReadOnlyList<SavedResult> list = _items
+                .Where(r => style is null || r.Analysis?.Style == style)
                 .OrderByDescending(r => r.CreatedAt)
                 .ThenByDescending(r => r.Id)
                 .ToList();

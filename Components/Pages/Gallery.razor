@@ -1,7 +1,7 @@
 @page "/gallery"
-@using AiDesigner.Clients
-@using AiDesigner.Services.Results
-@inject IGalleryClient Client
+@using AiDesigner.Clients.Gallery
+@using AiDesigner.Models
+@inject GalleryFacade Facade
 @inject IJSRuntime JS
 
 <PageTitle>Галерея — ШІ-дизайнер інтер'єру</PageTitle>
@@ -11,6 +11,18 @@
         <h1>Галерея</h1>
         <p class="subtitle">Збережені роботи</p>
     </header>
+
+    @* AC-36: фільтр за стилем. Назви — з DisplayNames, як на сторінці «Дизайн». *@
+    <div class="filter">
+        <label for="style-filter">Стиль</label>
+        <select id="style-filter" value="@StyleValue(_style)" @onchange="OnStyleChangedAsync" disabled="@_loading">
+            <option value="">Усі стилі</option>
+            @foreach (var style in Enum.GetValues<RoomStyle>())
+            {
+                <option value="@StyleValue(style)">@DisplayNames.Of(style)</option>
+            }
+        </select>
+    </div>
 
     @if (_error is not null)
     {
@@ -27,7 +39,15 @@
     }
     else if (_items.Count == 0)
     {
-        <p class="status">Збережених робіт ще немає</p>
+        @* AC-37: робіт обраного стилю немає — нейтральне повідомлення від фасаду, не помилка. *@
+        @if (_notice is not null)
+        {
+            <p class="message info" role="status">@_notice</p>
+        }
+        else
+        {
+            <p class="status">Збережених робіт ще немає</p>
+        }
     }
     else
     {
@@ -76,9 +96,12 @@
     private bool _loading = true;       // перший показ — «Завантаження…»
     private bool _loadFailed;
     private string? _error;
+    private string? _notice;            // AC-37: «немає робіт у стилі …» — від фасаду
+    private RoomStyle? _style;          // null — «Усі стилі»
     private int? _confirmingId;         // картка, де зараз питаємо «Видалити цю роботу?»
     private int? _busyId;               // картка, яку зараз видаляють
-    private TimeZoneInfo? _zone;        // пояс браузера (визначаємо один раз)
+    private string? _zoneId;            // пояс браузера (визначаємо один раз)
+    private bool _zoneKnown;
 
     // Завантажуємо після першого показу, коли вже є інтерактивне з'єднання:
     // під час попереднього рендеру сторінка не робить запиту до власного API.
@@ -93,40 +116,51 @@
         _loading = true;
         _loadFailed = false;
         _error = null;
+        _notice = null;
+        _confirmingId = null;
 
-        try
+        if (!_zoneKnown)
         {
-            _zone ??= await ResolveZoneAsync();
-            var results = await Client.GetAllAsync();
-            _items = results.Select(r => GalleryItemView.From(r, _zone)).ToList();
+            _zoneId = await GetTimeZoneIdAsync();
+            _zoneKnown = true;
         }
-        catch (Exception ex)
-        {
-            // Межа інтерфейсу: будь-який збій показуємо текстом, а не падінням сторінки.
-            _loadFailed = true;
-            _error = GalleryErrorMessages.FromException(ex);
-        }
-        finally
-        {
-            _loading = false;
-            StateHasChanged();
-        }
+
+        var loaded = await Facade.LoadAsync(_zoneId, _style);
+        if (loaded.IsSuccess)
+            _items = loaded.Items.ToList();
+
+        _loadFailed = !loaded.IsSuccess;
+        _error = loaded.Error;
+        _notice = loaded.Notice;
+        _loading = false;
+        StateHasChanged();
     }
 
-    // Сервер не знає пояса користувача — питаємо браузер. Не вийшло: час за поясом сервера.
-    private async Task<TimeZoneInfo> ResolveZoneAsync()
+    // Сервер не знає пояса користувача — питаємо браузер. Не вийшло: null, фасад візьме пояс сервера.
+    private async Task<string?> GetTimeZoneIdAsync()
     {
         try
         {
             await using var module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/browserInfo.js");
-            var id = await module.InvokeAsync<string?>("getTimeZone");
-            return BrowserTimeZone.Resolve(id);
+            return await module.InvokeAsync<string?>("getTimeZone");
         }
         catch (Exception)
         {
-            return TimeZoneInfo.Local;
+            return null;
         }
     }
+
+    private async Task OnStyleChangedAsync(ChangeEventArgs e)
+    {
+        _style = ParseStyle(e.Value as string);
+        await LoadAsync();
+    }
+
+    // Значення <option> — назва елемента RoomStyle; порожній рядок — «Усі стилі».
+    private static string StyleValue(RoomStyle? style) => style?.ToString() ?? string.Empty;
+
+    private static RoomStyle? ParseStyle(string? value) =>
+        Enum.TryParse<RoomStyle>(value, out var style) && Enum.IsDefined(style) ? style : null;
 
     private void AskDelete(int id) => _confirmingId = id;
 
@@ -138,22 +172,15 @@
         _busyId = id;
         _error = null;
 
-        try
-        {
-            var deleted = await Client.DeleteAsync(id);
-            if (!deleted)
-                _error = GalleryErrorMessages.WorkNotFoundMessage;   // 404: хтось уже видалив
+        var deleted = await Facade.DeleteAsync(id);
+        _error = deleted.Error;
+        if (deleted.RemoveCard)
+            _items.RemoveAll(i => i.Id == id);   // і після успіху, і після 404; після збою робота лишається
 
-            // І після успіху, і після 404 робити в списку більше нічого — прибираємо картку.
-            _items.RemoveAll(i => i.Id == id);
-        }
-        catch (Exception ex)
-        {
-            _error = GalleryErrorMessages.FromException(ex);          // робота лишається в списку
-        }
-        finally
-        {
-            _busyId = null;
-        }
+        // Фільтр не скидаємо: видалили останню роботу стилю — те саме повідомлення, що й при завантаженні (AC-37).
+        if (_items.Count == 0 && _style is { } style)
+            _notice = GalleryFacade.NoWorksOfStyleMessage(style);
+
+        _busyId = null;
     }
 }

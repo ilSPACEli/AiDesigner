@@ -1,11 +1,10 @@
 using System.Globalization;
 using AiDesigner.Api.Dto;
-using AiDesigner.Services.Modes;
+using AiDesigner.Clients.Design;
 
-namespace AiDesigner.Services.Results;
+namespace AiDesigner.Clients.Gallery;
 
-// Те, що показує картка галереї: усе вже готове до виведення, сторінка нічого не форматує.
-// Style — рядок про стиль роботи (AC-32); null — роботу збережено без ШІ або до S2, рядка немає.
+
 public sealed record GalleryItemView(
     int Id,
     string ItemName,
@@ -17,12 +16,10 @@ public sealed record GalleryItemView(
 {
     public const string DateFormat = "dd.MM.yyyy HH:mm";
 
-    // zone — часовий пояс для показу дати; null — пояс комп'ютера, на якому працює застосунок.
     public static GalleryItemView From(ResultDto result, TimeZoneInfo? zone = null)
     {
         ArgumentNullException.ThrowIfNull(result);
 
-        // За контрактом (docs/api.md) createdAt — UTC; явно позначаємо Kind, щоб перетворення було чесним.
         var utc = DateTime.SpecifyKind(result.CreatedAt, DateTimeKind.Utc);
         var local = TimeZoneInfo.ConvertTimeFromUtc(utc, zone ?? TimeZoneInfo.Local);
 
@@ -32,7 +29,7 @@ public sealed record GalleryItemView(
             local.ToString(DateFormat, CultureInfo.InvariantCulture),
             result.ThumbnailUrl,
             result.ImageUrl,
-            $"result-{result.Id}.png",    // така сама умовна назва, як у ResultImage.FileName (docs/api.md, розділ 4)
+            $"result-{result.Id}.png",    
             StyleLabel.For(result.AnalysisMode, result.Style));
     }
 }

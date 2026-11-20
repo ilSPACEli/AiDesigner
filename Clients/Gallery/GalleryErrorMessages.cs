@@ -1,10 +1,7 @@
 using System.Net;
 
-namespace AiDesigner.Services.Results;
+namespace AiDesigner.Clients.Gallery;
 
-// Тексти помилок сторінки «Галерея» (US-1). Клієнт (GalleryClient) кидає HttpRequestException,
-// якщо сервер відповів помилкою або недоступний; цей клас перетворює її на зрозумілий текст,
-// щоб у .razor не було логіки «який код — яке повідомлення».
 public static class GalleryErrorMessages
 {
     public const string WorkNotFoundMessage = "Цієї роботи вже немає: її видалено.";

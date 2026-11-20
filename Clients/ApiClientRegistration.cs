@@ -1,3 +1,5 @@
+using AiDesigner.Clients.Gallery;
+
 namespace AiDesigner.Clients;
 
 public static class ApiClientRegistration
@@ -7,6 +9,7 @@ public static class ApiClientRegistration
         services.AddHttpClient<IGalleryClient, GalleryClient>(ConfigureBaseAddress);
         services.AddHttpClient<ICatalogClient, CatalogClient>(ConfigureBaseAddress);
         services.AddHttpClient<ISuggestionClient, SuggestionClient>(ConfigureBaseAddress);
+        services.AddScoped<GalleryFacade>();
         return services;
     }
 

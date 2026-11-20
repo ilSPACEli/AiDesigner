@@ -108,8 +108,8 @@ public class ResultService
     }
 
 
-    public Task<IReadOnlyList<SavedResult>> GetAllAsync(CancellationToken cancellationToken = default) =>
-        _repository.GetAllAsync(cancellationToken);
+    public Task<IReadOnlyList<SavedResult>> GetAllAsync(RoomStyle? style = null, CancellationToken cancellationToken = default) =>
+        _repository.GetAllAsync(style, cancellationToken);
 
     public Task<SavedResult?> GetByIdAsync(int id, CancellationToken cancellationToken = default) =>
         _repository.GetByIdAsync(id, cancellationToken);

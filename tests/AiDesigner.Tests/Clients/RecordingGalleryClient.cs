@@ -1,5 +1,6 @@
 using AiDesigner.Api.Dto;
 using AiDesigner.Clients;
+using AiDesigner.Models;
 
 namespace AiDesigner.Tests.Clients;
 
@@ -31,7 +32,7 @@ public sealed class RecordingGalleryClient : IGalleryClient
         return Task.FromResult(GallerySaveResult.Success(dto));
     }
 
-    public Task<IReadOnlyList<ResultDto>> GetAllAsync(CancellationToken cancellationToken = default) =>
+    public Task<IReadOnlyList<ResultDto>> GetAllAsync(RoomStyle? style = null, CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<ResultDto>>(Array.Empty<ResultDto>());
 
     public Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default) =>
