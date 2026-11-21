@@ -217,6 +217,38 @@ public class DesignServiceStyleTests
             Entries.Add((logLevel, formatter(state, exception), exception));
     }
 
+    // ---------- #100: повторний аналіз в іншому режимі без повторного завантаження фото ----------
+
+    [Fact]
+    public async Task Bug100_Reanalyze_InOtherMode_AfterAiFailed_GivesStyle()
+    {
+        var local = new FakeStyleAnalyzer(AnalysisMode.LOCAL_AI, (_, _) => throw new HttpRequestException("тайм-аут"));
+        var cloud = Answering(AnalysisMode.CLOUD_AI, """{"style":"SCANDINAVIAN","confidence":0.9}""");
+        var service = CreateService(null, local, cloud);
+        service.GiveCloudConsent();
+        await service.AnalyzeAsync(AnalysisMode.LOCAL_AI);
+
+        var outcome = await service.AnalyzeAsync(AnalysisMode.CLOUD_AI);
+
+        Assert.Equal(AnalysisStatus.Success, outcome.Status);
+        Assert.Equal(AnalysisMode.CLOUD_AI, service.Session.Analysis!.Mode);
+        Assert.Equal(RoomStyle.SCANDINAVIAN, service.Session.Analysis.Style);
+    }
+
+    [Fact]
+    public async Task Bug100_Reanalyze_AfterSuggestions_ClearsSuggestions()
+    {
+        var service = CreateService();
+        await service.AnalyzeAsync(AnalysisMode.BASIC);
+        await service.SuggestAsync();
+
+        var outcome = await service.AnalyzeAsync(AnalysisMode.BASIC);
+
+        Assert.Equal(AnalysisStatus.Success, outcome.Status);
+        Assert.Equal(SessionState.ANALYZED, service.Session.State);
+        Assert.Empty(service.Session.Suggestions);
+    }
+
     // ---------- AC-31: згода на хмарний ШІ ----------
 
     [Fact]
