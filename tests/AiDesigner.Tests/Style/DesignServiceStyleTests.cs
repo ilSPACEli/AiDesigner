@@ -249,6 +249,34 @@ public class DesignServiceStyleTests
         Assert.Empty(service.Session.Suggestions);
     }
 
+    [Fact]
+    public async Task Reanalyze_Allowed_AfterAnalysis_NotAfterItemPlaced()
+    {
+        var service = CreateService();
+        await service.AnalyzeAsync(AnalysisMode.BASIC);
+        Assert.True(service.CanStartAnalysis);
+
+        await service.SuggestAsync();
+        Assert.True(service.CanStartAnalysis);
+
+        service.PlaceItem(service.Session.Suggestions[0].Item, 0, 0);
+        Assert.False(service.CanStartAnalysis);
+    }
+
+    [Fact]
+    public async Task Reanalyze_CloudWithoutConsent_KeepsPreviousAnalysis()
+    {
+        var service = CreateService(null, Answering(AnalysisMode.CLOUD_AI, ""));
+        await service.AnalyzeAsync(AnalysisMode.BASIC);
+        var previous = service.Session.Analysis;
+
+        var outcome = await service.AnalyzeAsync(AnalysisMode.CLOUD_AI);
+
+        Assert.Equal(AnalysisStatus.Error, outcome.Status);
+        Assert.Same(previous, service.Session.Analysis);
+        Assert.Equal(SessionState.ANALYZED, service.Session.State);
+    }
+
     // ---------- AC-31: згода на хмарний ШІ ----------
 
     [Fact]

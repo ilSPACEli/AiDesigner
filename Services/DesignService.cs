@@ -182,6 +182,11 @@ public class DesignService
 
     public bool HasCloudConsent { get; private set; }
 
+    // Повторний аналіз (напр., в іншому режимі) — доки предмет не розміщено на фото.
+    public bool CanStartAnalysis =>
+        Session.Photo is not null && !Session.IsAnalyzing && !IsLoadingPhoto
+        && Session.State is SessionState.PHOTO_LOADED or SessionState.ANALYZED or SessionState.SUGGESTIONS_SHOWN;
+
     public void GiveCloudConsent() => HasCloudConsent = true;
 
     public async Task<IReadOnlyList<ModeAvailability>> GetModesAsync(CancellationToken cancellationToken = default)
@@ -217,6 +222,10 @@ public class DesignService
 
         if (mode == AnalysisMode.CLOUD_AI && !HasCloudConsent)
             return AnalysisOutcome.Error(CloudConsentRequiredMessage);
+
+        // Повторний аналіз — як те саме фото заново: попередні аналіз і пропозиції скидаються (FR-13).
+        if (Session.State is SessionState.ANALYZED or SessionState.SUGGESTIONS_SHOWN)
+            Session.ReplacePhoto(Session.Photo!);
 
         Session.BeginAnalysis();
 
