@@ -1,6 +1,7 @@
 using AiDesigner.Api.Dto;
 using AiDesigner.Clients;
 using AiDesigner.Models;
+using AiDesigner.Services.Results;
 using AiDesigner.Services.Style;
 
 namespace AiDesigner.Services;
@@ -14,13 +15,16 @@ public class DesignService
     private readonly IGalleryClient _gallery;
     private readonly IReadOnlyList<IStyleAnalyzer> _styleAnalyzers;
     private readonly ILogger<DesignService>? _logger;
+    private readonly int _maxGalleryImageBytes;
 
     public DesignService(IPhotoAnalyzer analyzer, ISuggestionClient suggestions, IGalleryClient gallery,
-        IEnumerable<IStyleAnalyzer>? styleAnalyzers = null, ILogger<DesignService>? logger = null)
+        IEnumerable<IStyleAnalyzer>? styleAnalyzers = null, ILogger<DesignService>? logger = null,
+        GalleryOptions? galleryOptions = null)
     {
         _analyzer = analyzer;
         _suggestions = suggestions;
         _gallery = gallery;
+        _maxGalleryImageBytes = (galleryOptions ?? new GalleryOptions()).MaxImageBytes;
         _styleAnalyzers = styleAnalyzers?.ToList() ?? new List<IStyleAnalyzer>();
         _logger = logger;
     }
@@ -402,7 +406,8 @@ public class DesignService
         GallerySaveResult saved;
         try
         {
-            saved = await _gallery.SaveAsync(pngBytes, placement.Item.Id, ResultAnalysisDto.From(analysis), cancellationToken);
+            var galleryCopy = GalleryImage.FitToLimit(pngBytes, _maxGalleryImageBytes);
+            saved = await _gallery.SaveAsync(galleryCopy, placement.Item.Id, ResultAnalysisDto.From(analysis), cancellationToken);
         }
         catch (Exception)
         {
