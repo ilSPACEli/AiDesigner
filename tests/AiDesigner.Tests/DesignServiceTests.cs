@@ -3,7 +3,11 @@ using AiDesigner.Clients;
 using AiDesigner.Models;
 using AiDesigner.Services;
 using AiDesigner.Services.Stubs;
+using AiDesigner.Tests.Api;
 using AiDesigner.Tests.Clients;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace AiDesigner.Tests;
 
@@ -301,5 +305,64 @@ public class DesignServiceTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.SaveAsync(new byte[] { 1 }));
 
         Assert.Empty(gallery.Saves);
+    }
+
+    // ---------- #53: велике фото не зберігається в галерею (FR-14, NFR-06) ----------
+
+    // PNG із випадковим шумом: шум майже не стискається, тож 2500×2000 дає файл приблизно 15 МБ.
+    private static byte[] CreateNoisyPng(int width, int height)
+    {
+        var random = new Random(53);   // фіксоване зерно: тест відтворюваний
+        var row = new byte[width * 3];
+        using var image = new Image<Rgb24>(width, height);
+        image.ProcessPixelRows(rows =>
+        {
+            for (var y = 0; y < rows.Height; y++)
+            {
+                random.NextBytes(row);
+                var pixels = rows.GetRowSpan(y);
+                for (var x = 0; x < pixels.Length; x++)
+                    pixels[x] = new Rgb24(row[x * 3], row[x * 3 + 1], row[x * 3 + 2]);
+            }
+        });
+        using var stream = new MemoryStream();
+        image.Save(stream, new PngEncoder());
+        return stream.ToArray();
+    }
+
+    [Fact]
+    public async Task Bug53_Save_LargePhotoResult_IsSavedToGallery()
+    {
+        const int galleryLimit = 5 * 1024 * 1024;
+        var png = CreateNoisyPng(2500, 2000);
+        Assert.True(png.Length > galleryLimit, $"Тестове зображення має бути більшим за 5 МБ, а воно {png.Length} Б.");
+
+        // Справжня галерея: клієнт з'єднано з API через ApiFactory (як у GalleryClientTests).
+        using var factory = new ApiFactory();
+        // CreatePlacedAsync ставить stub-01, якого немає в каталозі галереї. Тому пропозицію з реальним
+        // предметом sofa-01 віддаємо через підробку добору, а решту кроків робимо як у CreatePlacedAsync.
+        var item = new CatalogItem
+        {
+            Id = "sofa-01", Name = "Сірий диван", Type = ItemType.SOFA,
+            ImageFile = "images/catalog/sofa-01.png", MainColor = "#9E9E9E",
+            SuitableLightings = new[] { LightingLevel.DARK, LightingLevel.MODERATE, LightingLevel.BRIGHT }
+        };
+        var suggestions = new FakeSuggestionClient(_ => SuggestionClientResult.Success(new[]
+        {
+            SuggestionDto.From(new Suggestion { Item = item, Rank = 1, Score = 2, Reason = "Аналогова гармонія" })
+        }));
+        var service = CreateService(suggestions: suggestions, gallery: new GalleryClient(factory.CreateClient()));
+        service.LoadPhoto(CreatePhoto());
+        await service.AnalyzeAsync();
+        await service.SuggestAsync();
+        service.PlaceItem(service.Session.Suggestions[0].Item, 0, 0);
+
+        var result = await service.SaveAsync(png);
+
+        Assert.True(result.IsSuccess, $"Збереження відхилено: \"{result.Message}\"");
+        Assert.Equal(1, await factory.Results.CountAsync());
+        var saved = Assert.Single(await factory.Results.GetAllAsync());
+        Assert.True(saved.ImageData.Length <= galleryLimit,
+            $"Зображення в галереї {saved.ImageData.Length} Б, ліміт {galleryLimit} Б.");
     }
 }

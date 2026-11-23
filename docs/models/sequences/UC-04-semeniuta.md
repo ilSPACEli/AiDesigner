@@ -84,7 +84,8 @@ sequenceDiagram
     participant C as PhotoCanvas.razor
     participant JS as photoCanvas.js (Fabric)
     participant DS as DesignService
-    participant FS as FileResultStorage
+    participant GC as GalleryClient
+    participant API as POST /api/results
     participant S as DesignSession
 
     U->>P: «Зберегти» (FR-11)
@@ -95,24 +96,25 @@ sequenceDiagram
     C-->>P: byte[]
     P->>DS: SaveAsync(png)
     DS->>DS: перевірка State == ITEM_PLACED
-    DS->>FS: SaveAsync(png, token)
-    FS->>FS: перевірка сигнатури PNG, CreateDirectory(output)
-    alt E1: не PNG, помилка диска або скасування
-        FS->>FS: видалити тимчасовий .tmp
-        FS-->>DS: виняток
-        DS-->>P: ServiceResult.Fail("Не вдалося зберегти зображення…")
-        P-->>U: повідомлення про помилку<br/>файлу немає, стан ITEM_PLACED, можна повторити
-    else запис вдався
-        FS->>FS: WriteAllBytesAsync(result-….png.tmp)
-        FS->>FS: File.Move(.tmp → .png)
-        FS-->>DS: ResultImage (FileName, "png", CreatedAt)
-        DS->>S: MarkSaved(image)
+    DS->>DS: GalleryImage.FitToLimit(png, MaxImageBytes)
+    Note over DS: більший за ліміт галереї (5 МБ) —<br/>зменшена копія, ті самі пропорції (#53, CR-08)
+    DS->>GC: SaveAsync(копія, catalogItemId, analysis)
+    GC->>API: multipart: image, catalogItemId, analysis
+    alt E1: відмова API (400 / 413 / 429 / 500) або мережа
+        API-->>GC: ProblemDetails
+        GC-->>DS: GallerySaveResult.Fail(detail)
+        DS-->>P: ServiceResult.Fail(повідомлення)
+        P-->>U: повідомлення про помилку<br/>стан ITEM_PLACED, можна повторити
+    else збережено
+        API-->>GC: 201 + ResultDto
+        GC-->>DS: GallerySaveResult.Success
+        DS->>S: MarkSaved(result-{id}.png)
         Note over S: State = SAVED<br/>SavedResults += image
         DS-->>P: ServiceResult.Ok()
         P->>C: SetLockedAsync(true)
         C->>JS: setLocked(true)
         Note over JS: предмет більше не рухається,<br/>збережений файл збігається з екраном
-        P-->>U: «Результат збережено: result-….png»
+        P-->>U: «Результат збережено в галерею.»
     end
 ```
 
@@ -121,7 +123,7 @@ sequenceDiagram
 - **Положення рахує сервіс, а не JS.** Початкове центрування (`Initial`), обмеження межами фото й мінімальний розмір (`Clamp`, `MinScale`) — чисті функції `PlacementGeometry`, покриті тестами `AC08_*`, `AC09_*`. JS містить лише дзеркало правила для плавності під час руху, а остаточні значення завжди повертає C# (діаграма 2, кроки 9–15).
 - **NFR-02 / AC-15:** під час перетягування звернень до сервера немає. Виклик `OnItemModified` відбувається один раз, коли користувач відпустив предмет. Затримку вимірювано вручну в DevTools (Performance).
 - **Предмет з'являється вже на місці:** `setItem(url, hidden: true)` додає його прихованим, а видимим він стає після `applyPlacement`, тому немає «стрибка» зі старого положення.
-- **Збереження двоетапне:** файл пишеться як `.tmp`, а потім перейменовується в `.png`. Тому при помилці готового `.png` не з'являється (E1, тести `E1_*` у `FileResultStorageTests`).
+- **Збереження — у галерею через API (S1):** `GalleryClient` → `POST /api/results`; робота й аналіз записуються в одній транзакції (S2). Результат, більший за ліміт галереї, перед надсиланням зменшується зі збереженням пропорцій (`GalleryImage.FitToLimit`, #53, CR-08); повна якість — «Завантажити» з полотна. Відмова API — повідомлення з `detail`, стан лишається `ITEM_PLACED` (E1).
 - **Стан `SAVED`:** рух предмета заблоковано (`setLocked`), а `UpdatePlacement` у цьому стані кидає виняток, тож збережений файл завжди збігається з екраном. Вибір іншого предмета (A1) повертає сесію в `ITEM_PLACED`.
-- **Заміна фото (A3)** — це UC-01: `ReplacePhoto` скидає розміщення (див. [UC-01](UC-01-blonskyi.md)). **Завершення без збереження (A4)** не створює файлу, бо запис відбувається лише в `FileResultStorage.SaveAsync`.
-- **NFR-04:** на диск потрапляє лише результат, який користувач зберіг явно. Вхідне фото існує тільки в пам'яті.
+- **Заміна фото (A3)** — це UC-01: `ReplacePhoto` скидає розміщення (див. [UC-01](UC-01-blonskyi.md)). **Завершення без збереження (A4)** не створює файлу, бо запис відбувається лише в `DesignService.SaveAsync` (`POST /api/results`).
+- **NFR-04:** у БД потрапляє лише результат, який користувач зберіг явно. Вхідне фото існує тільки в пам'яті.
