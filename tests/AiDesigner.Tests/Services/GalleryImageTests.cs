@@ -52,6 +52,20 @@ public class GalleryImageTests
         Assert.Equal(2.0, (double)info.Width / info.Height, 1);
     }
 
+    // #99: гілка циклу «спроби вичерпано, а копія все ще більша за ліміт» (покриття після #53).
+    [Fact]
+    public void LimitUnreachable_StopsAfterMaxAttempts_ReturnsSmallPng()
+    {
+        var png = NoisyPng(400, 200);
+
+        var copy = GalleryImage.FitToLimit(png, 10);
+
+        Assert.True(copy.Length > 10);
+        var info = Image.Identify(copy);
+        Assert.IsType<PngFormat>(info.Metadata.DecodedImageFormat);
+        Assert.True(info.Width <= 2 && info.Height <= 2);
+    }
+
     [Fact]
     public void InvalidLimit_Throws()
     {
