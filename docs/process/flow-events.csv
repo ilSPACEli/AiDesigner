@@ -1,0 +1,20 @@
+час,картка,попередній стан,новий стан,відповідальний,доказ
+2026-11-21 22:29,#95,To Do,In Progress,Фріз Богдан,https://github.com/ilSPACEli/AiDesigner/pull/102
+2026-11-21 22:40,#95,In Progress,Review,Фріз Богдан,https://github.com/ilSPACEli/AiDesigner/pull/102
+2026-11-21 23:37,#95,Review,Done,Блонський Іван,https://github.com/ilSPACEli/AiDesigner/pull/102
+2026-11-21 23:49,#100,To Do,In Progress,Фріз Богдан,https://github.com/ilSPACEli/AiDesigner/issues/100
+2026-11-21 23:59,#100,In Progress,Review,Фріз Богдан,https://github.com/ilSPACEli/AiDesigner/pull/103
+2026-11-22 00:13,#100,Review,Done,Блонський Іван,https://github.com/ilSPACEli/AiDesigner/pull/103
+2026-11-22 17:02,#96,To Do,In Progress,Семенюта Іван,https://github.com/ilSPACEli/AiDesigner/issues/96
+2026-11-22 17:24,#96,In Progress,Review,Семенюта Іван,https://github.com/ilSPACEli/AiDesigner/pull/104
+2026-11-22 17:34,#97,To Do,In Progress,Фріз Богдан,https://github.com/ilSPACEli/AiDesigner/issues/97
+2026-11-22 17:47,#97,In Progress,Review,Фріз Богдан,https://github.com/ilSPACEli/AiDesigner/pull/105
+2026-11-23 18:18,#96,Review,Done,Онищук Дмитро,https://github.com/ilSPACEli/AiDesigner/pull/104
+2026-11-23 18:18,#97,Review,Done,Блонський Іван,https://github.com/ilSPACEli/AiDesigner/pull/105
+2026-11-23 18:19,#98,To Do,In Progress,Блонський Іван,https://github.com/ilSPACEli/AiDesigner/issues/98
+2026-11-23 18:37,#98,In Progress,Review,Блонський Іван,https://github.com/ilSPACEli/AiDesigner/issues/98
+2026-11-23 18:50,#98,Review,Done,Фріз Богдан,https://github.com/ilSPACEli/AiDesigner/issues/98
+2026-11-26 22:50,#99,To Do,In Progress,Онищук Дмитро,https://github.com/ilSPACEli/AiDesigner/issues/99
+2026-11-26 23:06,#99,In Progress,Review,Онищук Дмитро,https://github.com/ilSPACEli/AiDesigner/pull/106
+2026-11-26 23:10,#99,Review,Done,Семенюта Іван,https://github.com/ilSPACEli/AiDesigner/pull/106
+2026-11-26 23:15,#101,To Do,In Progress,Фріз Богдан,https://github.com/ilSPACEli/AiDesigner/issues/101

@@ -195,9 +195,7 @@
 
     private DesignSession Session => Design.Session;
 
-    private bool CanAnalyze =>
-        Session.State == SessionState.PHOTO_LOADED && !Session.IsAnalyzing && !_loadingPhoto && !Design.IsLoadingPhoto
-        && !_askingConsent;
+    private bool CanAnalyze => Design.CanStartAnalysis && !_loadingPhoto && !_askingConsent;
 
     private bool CanChangeMode => !Session.IsAnalyzing && !_askingConsent;
 

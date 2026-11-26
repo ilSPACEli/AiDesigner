@@ -1,6 +1,7 @@
 using AiDesigner.Api.Dto;
 using AiDesigner.Clients;
 using AiDesigner.Models;
+using AiDesigner.Services.Results;
 using AiDesigner.Services.Style;
 
 namespace AiDesigner.Services;
@@ -14,13 +15,16 @@ public class DesignService
     private readonly IGalleryClient _gallery;
     private readonly IReadOnlyList<IStyleAnalyzer> _styleAnalyzers;
     private readonly ILogger<DesignService>? _logger;
+    private readonly int _maxGalleryImageBytes;
 
     public DesignService(IPhotoAnalyzer analyzer, ISuggestionClient suggestions, IGalleryClient gallery,
-        IEnumerable<IStyleAnalyzer>? styleAnalyzers = null, ILogger<DesignService>? logger = null)
+        IEnumerable<IStyleAnalyzer>? styleAnalyzers = null, ILogger<DesignService>? logger = null,
+        GalleryOptions? galleryOptions = null)
     {
         _analyzer = analyzer;
         _suggestions = suggestions;
         _gallery = gallery;
+        _maxGalleryImageBytes = (galleryOptions ?? new GalleryOptions()).MaxImageBytes;
         _styleAnalyzers = styleAnalyzers?.ToList() ?? new List<IStyleAnalyzer>();
         _logger = logger;
     }
@@ -182,6 +186,11 @@ public class DesignService
 
     public bool HasCloudConsent { get; private set; }
 
+    // Повторний аналіз (напр., в іншому режимі) — доки предмет не розміщено на фото.
+    public bool CanStartAnalysis =>
+        Session.Photo is not null && !Session.IsAnalyzing && !IsLoadingPhoto
+        && Session.State is SessionState.PHOTO_LOADED or SessionState.ANALYZED or SessionState.SUGGESTIONS_SHOWN;
+
     public void GiveCloudConsent() => HasCloudConsent = true;
 
     public async Task<IReadOnlyList<ModeAvailability>> GetModesAsync(CancellationToken cancellationToken = default)
@@ -217,6 +226,10 @@ public class DesignService
 
         if (mode == AnalysisMode.CLOUD_AI && !HasCloudConsent)
             return AnalysisOutcome.Error(CloudConsentRequiredMessage);
+
+        // Повторний аналіз — як те саме фото заново: попередні аналіз і пропозиції скидаються (FR-13).
+        if (Session.State is SessionState.ANALYZED or SessionState.SUGGESTIONS_SHOWN)
+            Session.ReplacePhoto(Session.Photo!);
 
         Session.BeginAnalysis();
 
@@ -393,7 +406,8 @@ public class DesignService
         GallerySaveResult saved;
         try
         {
-            saved = await _gallery.SaveAsync(pngBytes, placement.Item.Id, ResultAnalysisDto.From(analysis), cancellationToken);
+            var galleryCopy = GalleryImage.FitToLimit(pngBytes, _maxGalleryImageBytes);
+            saved = await _gallery.SaveAsync(galleryCopy, placement.Item.Id, ResultAnalysisDto.From(analysis), cancellationToken);
         }
         catch (Exception)
         {
