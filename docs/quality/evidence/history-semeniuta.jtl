@@ -1,0 +1,221 @@
+timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,sentBytes,grpThreads,allThreads,URL,Latency,IdleTime,Connect
+1795834703344,1285,warmup — GET /api/results?style=LOFT,200,OK,"Прогрів (20, не враховується) 1-1",text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,1277,0,38
+1795834704632,43,warmup — GET /api/results?style=LOFT,200,OK,"Прогрів (20, не враховується) 1-1",text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,42,0,0
+1795834704675,39,warmup — GET /api/results?style=LOFT,200,OK,"Прогрів (20, не враховується) 1-1",text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834704714,38,warmup — GET /api/results?style=LOFT,200,OK,"Прогрів (20, не враховується) 1-1",text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834704753,39,warmup — GET /api/results?style=LOFT,200,OK,"Прогрів (20, не враховується) 1-1",text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834704793,44,warmup — GET /api/results?style=LOFT,200,OK,"Прогрів (20, не враховується) 1-1",text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,44,0,0
+1795834704839,43,warmup — GET /api/results?style=LOFT,200,OK,"Прогрів (20, не враховується) 1-1",text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,43,0,0
+1795834704884,42,warmup — GET /api/results?style=LOFT,200,OK,"Прогрів (20, не враховується) 1-1",text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,42,0,0
+1795834704927,41,warmup — GET /api/results?style=LOFT,200,OK,"Прогрів (20, не враховується) 1-1",text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,41,0,0
+1795834704968,45,warmup — GET /api/results?style=LOFT,200,OK,"Прогрів (20, не враховується) 1-1",text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,45,0,0
+1795834705014,37,warmup — GET /api/results?style=LOFT,200,OK,"Прогрів (20, не враховується) 1-1",text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834705052,37,warmup — GET /api/results?style=LOFT,200,OK,"Прогрів (20, не враховується) 1-1",text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834705090,38,warmup — GET /api/results?style=LOFT,200,OK,"Прогрів (20, не враховується) 1-1",text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834705129,38,warmup — GET /api/results?style=LOFT,200,OK,"Прогрів (20, не враховується) 1-1",text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834705168,39,warmup — GET /api/results?style=LOFT,200,OK,"Прогрів (20, не враховується) 1-1",text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834705208,42,warmup — GET /api/results?style=LOFT,200,OK,"Прогрів (20, не враховується) 1-1",text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,42,0,0
+1795834705252,43,warmup — GET /api/results?style=LOFT,200,OK,"Прогрів (20, не враховується) 1-1",text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,43,0,0
+1795834705296,42,warmup — GET /api/results?style=LOFT,200,OK,"Прогрів (20, не враховується) 1-1",text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,42,0,0
+1795834705339,40,warmup — GET /api/results?style=LOFT,200,OK,"Прогрів (20, не враховується) 1-1",text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,40,0,0
+1795834705380,38,warmup — GET /api/results?style=LOFT,200,OK,"Прогрів (20, не враховується) 1-1",text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834705473,40,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,2
+1795834705513,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834705552,37,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834705589,37,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834705627,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834705668,42,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,42,0,0
+1795834705712,42,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,42,0,0
+1795834705755,41,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,40,0,0
+1795834705797,40,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,40,0,0
+1795834705837,42,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,42,0,0
+1795834705880,41,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,41,0,0
+1795834705922,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834705962,40,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,40,0,0
+1795834706004,52,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,51,0,0
+1795834706057,41,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,41,0,0
+1795834706099,41,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,41,0,0
+1795834706141,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834706179,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834706218,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834706257,37,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834706294,55,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,55,0,0
+1795834706350,37,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834706387,37,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834706425,36,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,36,0,0
+1795834706461,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834706499,41,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,41,0,0
+1795834706542,42,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,42,0,0
+1795834706585,42,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,42,0,0
+1795834706629,42,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,42,0,0
+1795834706672,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834706712,42,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,42,0,0
+1795834706755,37,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834706793,37,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834706830,37,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834706868,40,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,40,0,0
+1795834706910,41,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,40,0,0
+1795834706952,43,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,43,0,0
+1795834706996,41,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,41,0,0
+1795834707038,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834707076,40,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834707117,40,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,40,0,0
+1795834707159,42,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,41,0,0
+1795834707202,41,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,41,0,0
+1795834707244,41,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,41,0,0
+1795834707286,41,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,41,0,0
+1795834707328,42,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,41,0,0
+1795834707371,40,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,40,0,0
+1795834707412,42,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,42,0,0
+1795834707455,42,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,42,0,0
+1795834707499,40,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,40,0,0
+1795834707539,40,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,40,0,0
+1795834707580,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834707620,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834707658,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834707697,36,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,36,0,0
+1795834707733,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834707771,37,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834707808,40,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834707848,40,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,40,0,0
+1795834707889,41,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,41,0,0
+1795834707931,40,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,40,0,0
+1795834707972,54,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,54,0,0
+1795834708028,48,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,48,0,0
+1795834708077,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834708115,36,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,36,0,0
+1795834708152,40,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834708193,40,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,40,0,0
+1795834708234,43,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,43,0,0
+1795834708279,48,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,47,0,0
+1795834708331,46,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,45,0,0
+1795834708378,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834708418,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834708456,36,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,36,0,0
+1795834708493,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834708531,37,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834708568,37,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834708606,37,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834708643,37,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834708681,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834708721,36,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,36,0,0
+1795834708758,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834708797,37,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834708835,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834708874,37,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834708911,37,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834708949,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834708988,40,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,40,0,0
+1795834709029,36,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,36,0,0
+1795834709065,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834709104,36,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,36,0,0
+1795834709140,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834709180,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834709219,37,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834709257,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834709297,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834709335,36,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,36,0,0
+1795834709372,60,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,59,0,0
+1795834709432,36,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,36,0,0
+1795834709469,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834709508,37,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834709546,37,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834709583,37,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834709620,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834709658,37,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,36,0,0
+1795834709695,36,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,36,0,0
+1795834709732,36,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,36,0,0
+1795834709769,36,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,36,0,0
+1795834709806,37,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834709843,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834709882,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834709920,36,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,36,0,0
+1795834709956,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834709994,55,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,55,0,0
+1795834710050,41,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,41,0,0
+1795834710091,37,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834710128,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834710166,37,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834710204,36,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,36,0,0
+1795834710241,41,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,41,0,0
+1795834710283,41,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,41,0,0
+1795834710325,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834710365,40,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,40,0,0
+1795834710406,47,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,47,0,0
+1795834710454,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834710494,42,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,42,0,0
+1795834710537,41,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,41,0,0
+1795834710579,42,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,42,0,0
+1795834710622,40,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,40,0,0
+1795834710663,45,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,44,0,0
+1795834710708,46,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,46,0,0
+1795834710755,40,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,40,0,0
+1795834710796,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834710836,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834710875,40,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834710915,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834710955,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834710995,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834711034,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834711074,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834711113,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834711153,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834711193,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834711232,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834711272,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834711311,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834711351,40,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,40,0,0
+1795834711392,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834711431,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834711471,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834711510,40,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,40,0,0
+1795834711551,45,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,45,0,0
+1795834711597,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834711637,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834711676,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834711716,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834711755,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834711794,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834711833,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834711873,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834711912,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834711953,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834711993,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834712032,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834712072,40,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,40,0,0
+1795834712113,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834712152,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834712192,41,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,41,0,0
+1795834712234,41,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,41,0,0
+1795834712275,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834712313,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834712352,43,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,43,0,0
+1795834712396,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834712436,41,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,41,0,0
+1795834712478,41,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,40,0,0
+1795834712520,49,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,49,0,0
+1795834712570,57,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,57,0,0
+1795834712628,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834712666,36,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,36,0,0
+1795834712702,37,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,36,0,0
+1795834712739,37,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834712776,36,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,36,0,0
+1795834712813,36,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,36,0,0
+1795834712849,36,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,36,0,0
+1795834712886,37,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834712923,37,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834712961,37,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834712999,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,37,0,0
+1795834713038,41,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,41,0,0
+1795834713080,43,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,43,0,0
+1795834713125,41,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,41,0,0
+1795834713167,41,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,41,0,0
+1795834713208,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834713247,38,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,38,0,0
+1795834713286,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
+1795834713328,40,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,40,0,0
+1795834713369,46,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,46,0,0
+1795834713417,48,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,48,0,0
+1795834713466,40,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,40,0,0
+1795834713507,40,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,40,0,0
+1795834713548,39,GET /api/results?style=LOFT,200,OK,Основна серія (200) 1-1,text,true,,5172,142,1,1,http://localhost:5245/api/results?style=LOFT,39,0,0
