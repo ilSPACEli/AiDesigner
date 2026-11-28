@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using AiDesigner.Models;
 
 namespace AiDesigner.Api.Dto;
@@ -9,8 +8,6 @@ public sealed record AnalysisRequestDto(IReadOnlyList<ColorDto>? Colors, string?
 {
     public const int MinColors = 3;
     public const int MaxColors = 5;
-
-    private static readonly Regex HexColor = new("^#[0-9A-Fa-f]{6}$", RegexOptions.Compiled);
 
     public static AnalysisRequestDto From(AnalysisResult analysis)
     {
@@ -38,7 +35,7 @@ public sealed record AnalysisRequestDto(IReadOnlyList<ColorDto>? Colors, string?
         for (var i = 0; i < Colors.Count; i++)
         {
             var color = Colors[i];
-            if (color is null || color.Hex is null || !HexColor.IsMatch(color.Hex))
+            if (color is null || !HexColor.IsValid(color.Hex))
             {
                 error = $"colors[{i}].hex: очікується формат #RRGGBB.";
                 return null;

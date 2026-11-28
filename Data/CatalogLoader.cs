@@ -1,6 +1,5 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
 using AiDesigner.Models;
 
 namespace AiDesigner.Data;
@@ -14,14 +13,11 @@ public static class CatalogLoader
 
     public const int MaxLightings = 3;
 
-    // camelCase у JSON ↔ PascalCase у C#; enum тільки рядками ("SOFA"), числа заборонені,
-    // щоб "type": 99 не перетворився на неіснуючий тип
+
     private static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web)
     {
         Converters = { new JsonStringEnumConverter(allowIntegerValues: false) }
     };
-
-    private static readonly Regex HexColor = new("^#[0-9A-Fa-f]{6}$", RegexOptions.Compiled);
 
     // Завантажити з файлу. Будь-яка проблема — CatalogException (UC-03, E1: «каталог недоступний»)
     public static IReadOnlyList<CatalogItem> LoadFromFile(string path)
@@ -98,7 +94,7 @@ public static class CatalogLoader
             if (string.IsNullOrWhiteSpace(item.ImageFile))
                 problems.Add($"{label}: не вказано зображення.");
 
-            if (item.MainColor is null || !HexColor.IsMatch(item.MainColor))
+            if (!HexColor.IsValid(item.MainColor))
                 problems.Add($"{label}: основний колір має бути у форматі #RRGGBB.");
 
             var lightings = item.SuitableLightings;
