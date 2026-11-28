@@ -638,3 +638,6 @@ $RECYCLE.BIN/
 # VS Code
 .vscode/
  
+
+# SonarScanner for .NET (робочі файли аналізу)
+.sonarqube/
